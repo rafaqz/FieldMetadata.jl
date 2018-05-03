@@ -26,7 +26,7 @@ macro metaparam(name)
             return getparams(ex, name)
         end
 
-        function $name(x, key::Symbol) 
+        @inline function $name(x, key::Symbol) 
             $name(x, Val{key}) 
         end
     end
@@ -39,28 +39,29 @@ function getparams(ex, funcname)
     end
 
     findhead(ex, :block) do block
-        findhead(ex, :(=)) do x
-            key = x.args[1].args[1]
-            y = x.args[2]
-            if :head in fieldnames(y) && y.head == :tuple
-                tup = y
-                val = tup.args[end]
-                addmethod!(funcs, funcname, dtype, key, val)
-                if length(tup.args) > 2 # remove last item in tuple
-                    tup.args = tup.args[1:end-1]
-                else # replace tuple with first item in tuple
-                    x.args[2] = tup.args[1]
-                end
-            else
-                val = y
-                addmethod!(funcs, funcname, dtype, key, val)
-                x.head = x.args[1].head
-                x.args = x.args[1].args
+        for arg in block.args
+            if arg.head == :(=) # probably using @with_kw
+                call = arg.args[2]
+                # :head in fieldnames(call) && call[2].head == :call || continue 
+                # call.args[1] == :(|) || continue
+                key = getkey(arg.args[1])
+                val = call.args[3]
+                val == :nothing || addmethod!(funcs, funcname, dtype, key, val)
+                arg.args[2] = call.args[2]
+            elseif arg.head == :call
+                arg.args[1] == :(|) || continue
+                key = getkey(arg.args[2])
+                val = arg.args[3]
+                val == :nothing || addmethod!(funcs, funcname, dtype, key, val)
+                arg.head = arg.args[2].head
+                arg.args = arg.args[2].args
             end
         end
     end
     Expr(:block, esc(ex), funcs...)
 end
+
+getkey(ex) = firsthead(y -> y.args[1], ex, :(::))
 
 function addmethod!(funcs, funcname, dtype, key, val)
     func = esc(parse("function $funcname(x::$dtype, y::Type{Val{:$key}}) :replace end"))
@@ -71,16 +72,22 @@ function addmethod!(funcs, funcname, dtype, key, val)
 end
 
 function findhead(f, ex, sym) 
+    found = false
     if :head in fieldnames(ex)
-        ex.head == sym && f(ex)
-        findhead.(f, ex.args, sym)
+        if ex.head == sym
+            f(ex)
+            found = true
+        end
+        found |= any(findhead.(f, ex.args, sym))
     end
+    return found
 end
 
 function firsthead(f, ex, sym) 
     if :head in fieldnames(ex)
         if ex.head == sym 
-            return f(ex)
+            out = f(ex)
+            return out
         else
             for arg in ex.args
                 x = firsthead(f, arg, sym)
