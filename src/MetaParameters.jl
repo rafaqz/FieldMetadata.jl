@@ -46,13 +46,13 @@ function getparams(ex, funcname)
                 # call.args[1] == :(|) || continue
                 key = getkey(arg.args[1])
                 val = call.args[3]
-                val == :nothing || addmethod!(funcs, funcname, dtype, key, val)
+                val == :_ || addmethod!(funcs, funcname, dtype, key, val)
                 arg.args[2] = call.args[2]
             elseif arg.head == :call
                 arg.args[1] == :(|) || continue
                 key = getkey(arg.args[2])
                 val = arg.args[3]
-                val == :nothing || addmethod!(funcs, funcname, dtype, key, val)
+                val == :_ || addmethod!(funcs, funcname, dtype, key, val)
                 arg.head = arg.args[2].head
                 arg.args = arg.args[2].args
             end

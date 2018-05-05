@@ -1,4 +1,3 @@
-using Revise
 using MetaParameters
 using Parameters
 using Base.Test
@@ -27,14 +26,14 @@ w = WithRange(2,5)
 
 @description @paramrange struct Combined{T} <: AbstractTest
     a::T | [1, 4]  | "an Int with a range and a description"
-    b::T | nothing | "a Float with a range and a description"
+    b::T | _       | "a Float with a range and a description"
 end
 
 c = Combined(3,5)
 @test description(c, :a) == "an Int with a range and a description"  
 @test description(c, :b) == "a Float with a range and a description"  
 @test paramrange(c, :a) == [1, 4]
-@test_throws MethodError paramrange(c, :b) == nothing
+@test_throws MethodError paramrange(c, :b)
 
 @description @paramrange @with_kw struct Keyword{T} <: AbstractTest
     a::T = 3 | [0, 100] | "an Int with a range and a description"
