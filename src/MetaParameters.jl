@@ -17,8 +17,9 @@ model = Model(3, 5)
 range(model, Val{:a})
 range(model, Val{:b})
 """
-macro metaparam(name)
+macro metaparam(name, default)
     symname = QuoteNode(name)
+    default = esc(default)
     name = esc(name)
     return quote
         macro $name(ex)
@@ -26,7 +27,11 @@ macro metaparam(name)
             return getparams(ex, name)
         end
 
-        @inline function $name(x, key::Symbol) 
+        function $name(x, key) 
+            $default
+        end
+
+        function $name(x, key::Symbol) 
             $name(x, Val{key}) 
         end
     end

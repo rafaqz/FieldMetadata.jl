@@ -3,8 +3,8 @@ using Parameters
 using Base.Test
 
 abstract type AbstractTest end
-@metaparam description
-@metaparam paramrange
+@metaparam paramrange [0,1]
+@metaparam description ""
 
 @description mutable struct Described
    a::Int     | "an Int with a description"  
@@ -14,6 +14,7 @@ end
 d = Described(1, 1.0)
 @test description(d, :a) == "an Int with a description"  
 @test description(d, :b) == "a Float with a description"  
+@test description(d, :c) == ""  
 
 @paramrange struct WithRange <: AbstractTest
     a::Int | [1, 4]
