@@ -42,7 +42,7 @@ end
 
 k = Keyword()
 
-julia> description(k, :a) 
+julia> description(k, :b) 
 "another parameter with a range, description and default"
 
 julia> paramrange(k, :a) 
@@ -50,7 +50,9 @@ julia> paramrange(k, :a)
 ""  
 ```
 
-You chain as many metaparams together as you want. The data for the first `@metaparam` macro
-goes at the end on the line in the struct! This makes sense when you consider that @with_kw
+You can chain as many metaparams together as you want. 
+
+Just remember that the data for the first `@metaparam` macro
+goes at the end on the line in the struct. This makes sense when you consider that @with_kw
 from Parameters.jl has to be the last macro, but the first item in the row after
 the field type.
