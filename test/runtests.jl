@@ -3,7 +3,7 @@ using Parameters
 using Base.Test
 
 abstract type AbstractTest end
-@metaparam paramrange [0,1]
+@metaparam paramrange [0, 1]
 @metaparam description ""
 
 @description mutable struct Described
@@ -34,7 +34,7 @@ c = Combined(3,5)
 @test description(c, :a) == "an Int with a range and a description"  
 @test description(c, :b) == "a Float with a range and a description"  
 @test paramrange(c, :a) == [1, 4]
-@test_throws MethodError paramrange(c, :b)
+@test paramrange(c, :b) == [0, 1]
 
 @description @paramrange @with_kw struct Keyword{T} <: AbstractTest
     a::T = 3 | [0, 100] | "an Int with a range and a description"

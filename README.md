@@ -28,6 +28,28 @@ julia>description(d, :c)
 ""  
 ```
 
+A more complex example :
+
+```juliarepl
+using Parameters
+@metaparam description ""
+@metaparam paramrange [0, 1]
+
+@description @paramrange @with_kw struct Keyword{T}
+    a::T = 3 | [0, 100] | "a parameter with a range, description and default"
+    b::T = 5 | [2, 9]   | "another parameter with a range, description and default"
+end
+
+k = Keyword()
+
+julia> description(k, :a) 
+"another parameter with a range, description and default"
+
+julia> paramrange(k, :a) 
+[0, 100]
+""  
+```
+
 You chain as many metaparams together as you want. The data for the first `@metaparam` macro
 goes at the end on the line in the struct! This makes sense when you consider that @with_kw
 from Parameters.jl has to be the last macro, but the first item in the row after
