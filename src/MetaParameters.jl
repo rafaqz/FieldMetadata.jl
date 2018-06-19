@@ -29,11 +29,15 @@ macro metaparam(name, default)
             return getparams(ex, name)
         end
 
-        function $name(x, key) 
+        @inline function $name(x, key) 
             $default
         end
 
-        function $name(x, key::Symbol) 
+        @inline function $name(x, key::Symbol) 
+            $name(typeof(x), Val{key}) 
+        end
+
+        @inline function $name(x::Type, key::Symbol) 
             $name(x, Val{key}) 
         end
     end
@@ -71,7 +75,7 @@ end
 getkey(ex) = firsthead(y -> y.args[1], ex, :(::))
 
 function addmethod!(funcs, funcname, dtype, key, val)
-    func = esc(parse("function $funcname(x::$dtype, y::Type{Val{:$key}}) :replace end"))
+    func = esc(parse("function $funcname(x::Type{<:$dtype}, y::Type{Val{:$key}}) :replace end"))
     findhead(func, :block) do l
         l.args[2] = val
     end
