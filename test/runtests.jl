@@ -1,4 +1,3 @@
-using Revise
 using MetaParameters
 using Parameters
 using Base.Test
