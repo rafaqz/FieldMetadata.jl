@@ -1,7 +1,7 @@
-# MetaParameters
+# MetaFields
 
-[![Build Status](https://travis-ci.org/rafaqz/MetaParameters.jl.svg?branch=master)](https://travis-ci.org/rafaqz/MetaParameters.jl)
-[![Coverage Status](https://coveralls.io/repos/rafaqz/MetaParameters.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/rafaqz/MetaParameters.jl?branch=master)
+[![Build Status](https://travis-ci.org/rafaqz/MetaFields.jl.svg?branch=master)](https://travis-ci.org/rafaqz/MetaFields.jl)
+[![Coverage Status](https://coveralls.io/repos/rafaqz/MetaFields.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/rafaqz/MetaFields.jl?branch=master)
 
 This package allows defining metadata that relate to parameters that are fields
 in a struct, using a similar syntax to Parameters.jl, with a `|` bar instead of

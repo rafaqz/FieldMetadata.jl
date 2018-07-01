@@ -1,10 +1,12 @@
-using MetaParameters
+using MetaFields
 using Parameters
 using Base.Test
 
 abstract type AbstractTest end
-@metaparam paramrange [0, 1]
-@metaparam description ""
+@metafield paramrange [0, 1]
+@metafield description ""
+
+# TODO handle untyped fields
 
 
 # description string
@@ -30,7 +32,7 @@ w = WithRange(2,5)
 @test paramrange(w, :b) == [4, 9]
 
 
-# combinations of metaparameters
+# combinations of metafields
 @description @paramrange struct Combined{T} <: AbstractTest
     a::T | [1, 4]  | "an Int with a range and a description"
     b::T | _       | "a Float with a range and a description"

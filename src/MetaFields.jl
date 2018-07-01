@@ -1,15 +1,15 @@
 __precompile__()
 
-module MetaParameters
+module MetaFields
 
-export @metaparam
+export @metafield
 
 """
-Generate a macro that constructs methods of the same name -
-these method return the metaparameter information provided for each
-field of the struct passed to the macro.
+Generate a macro that constructs methods of the same name.
+These methods return the metafield information provided for each
+field of the struct.
 ```julia
-@metaparam range
+@metafield range
 @range struct Model
     a::Int = (1, 4)
     b::Int = (4, 9)
@@ -19,14 +19,20 @@ model = Model(3, 5)
 range(model, Val{:a})
 range(model, Val{:b})
 """
-macro metaparam(name, default)
+macro metafield(name, default)
     symname = QuoteNode(name)
     default = esc(default)
+    rename = esc(parse("re$name"))
     name = esc(name)
     return quote
         macro $name(ex)
             name = $symname
             return getparams(ex, name)
+        end
+
+        macro $rename(ex)
+            name = $symname
+            return getparams(ex, name; update = true)
         end
 
         @inline function $name(x, key) 
@@ -43,7 +49,7 @@ macro metaparam(name, default)
     end
 end
 
-function getparams(ex, funcname)
+function getparams(ex, funcname; update = false)
     funcs = Expr[]
     dtype = firsthead(ex, :type) do typ
         return namify(typ.args[2])
@@ -69,7 +75,11 @@ function getparams(ex, funcname)
             end
         end
     end
-    Expr(:block, esc(ex), funcs...)
+    if update
+        Expr(:block, funcs...)
+    else
+        Expr(:block, esc(ex), funcs...)
+    end
 end
 
 getkey(ex) = firsthead(y -> y.args[1], ex, :(::))
