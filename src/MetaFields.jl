@@ -50,46 +50,49 @@ macro metafield(name, default)
 end
 
 function getparams(ex, funcname; update = false)
-    funcs = Expr[]
-    dtype = firsthead(ex, :type) do typ
-        return namify(typ.args[2])
+    func_exps = Expr[]
+    typ = firsthead(ex, :type) do typ_ex
+        return namify(typ_ex.args[2])
     end
 
+    # Parse the block of lines inside the struct.
+    # Function expressions are built for each field, and metadata removed.
     findhead(ex, :block) do block
         for arg in block.args
-            if arg.head == :(=) # probably using @with_kw
+            if !(:head in fieldnames(arg))
+                continue
+            elseif arg.head == :(=) # probably using @with_kw
+                # TODO make this ignore = in inner constructors
                 call = arg.args[2]
-                # :head in fieldnames(call) && call[2].head == :call || continue 
-                # call.args[1] == :(|) || continue
                 key = getkey(arg.args[1])
                 val = call.args[3]
-                val == :_ || addmethod!(funcs, funcname, dtype, key, val)
+                val == :_ || addmethod!(func_exps, funcname, typ, key, val)
                 arg.args[2] = call.args[2]
             elseif arg.head == :call
                 arg.args[1] == :(|) || continue
                 key = getkey(arg.args[2])
                 val = arg.args[3]
-                val == :_ || addmethod!(funcs, funcname, dtype, key, val)
+                val == :_ || addmethod!(func_exps, funcname, typ, key, val)
                 arg.head = arg.args[2].head
                 arg.args = arg.args[2].args
             end
         end
     end
     if update
-        Expr(:block, funcs...)
+        Expr(:block, func_exps...)
     else
-        Expr(:block, esc(ex), funcs...)
+        Expr(:block, :(Base.@__doc__ $(esc(ex))), func_exps...)
     end
 end
 
 getkey(ex) = firsthead(y -> y.args[1], ex, :(::))
 
-function addmethod!(funcs, funcname, dtype, key, val)
-    func = esc(parse("function $funcname(x::Type{<:$dtype}, y::Type{Val{:$key}}) :replace end"))
+function addmethod!(func_exps, funcname, typ, key, val)
+    func = esc(parse("function $funcname(x::Type{<:$typ}, y::Type{Val{:$key}}) :replace end"))
     findhead(func, :block) do l
         l.args[2] = val
     end
-    push!(funcs, func)
+    push!(func_exps, func)
 end
 
 function findhead(f, ex, sym) 

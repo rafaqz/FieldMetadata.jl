@@ -1,3 +1,4 @@
+using Revise
 using MetaFields
 using Parameters
 using Base.Test
@@ -9,7 +10,6 @@ abstract type AbstractTest end
 # TODO handle untyped fields
 
 
-# description string
 @description mutable struct Described
    a::Int     | "an Int with a description"  
    b::Float64 | "a Float with a description"
@@ -69,3 +69,24 @@ m = MissingKeyword(b = 99)
 @test description(m, :b) == "a Float with a range and a description"
 @test m.a == 3
 @test m.b == 99
+
+# docstrings
+"The Docs"
+@paramrange mutable struct Documented
+    "Foo"
+    a::Int     | [1,2]
+    "Bar"
+    b::Float64 | [3,4]
+end
+
+if VERSION<v"0.7-"
+    @test "The Docs\n" == Markdown.plain(Base.Docs.doc(Documented))
+    @test "Foo\n" == Markdown.plain(Base.Docs.fielddoc(Documented, :a))
+    @test "Bar\n" == Markdown.plain(Base.Docs.fielddoc(Documented, :b))
+else
+    @eval using REPL
+    @test "The Docs\n" == Markdown.plain(REPL.doc(Documented))
+    @test "Foo\n" == Markdown.plain(REPL.fielddoc(Documented, :a))
+    @test "Bar\n" == Markdown.plain(REPL.fielddoc(Documented, :b))
+end
+
