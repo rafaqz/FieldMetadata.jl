@@ -1,4 +1,3 @@
-using Revise
 using MetaFields
 using Parameters
 using Base.Test
@@ -19,6 +18,7 @@ d = Described(1, 1.0)
 @test description(d, :a) == "an Int with a description"  
 @test description(typeof(d), :b) == "a Float with a description"  
 @test description(d, :c) == ""  
+@test description(d) == ("an Int with a description", "a Float with a description")
 
 
 # range array
@@ -30,6 +30,7 @@ end
 w = WithRange(2,5)
 @test paramrange(w, :a) == [1, 4]
 @test paramrange(w, :b) == [4, 9]
+@test paramrange(w) == ([1, 4], [4, 9])
 
 
 # combinations of metafields
@@ -69,6 +70,8 @@ m = MissingKeyword(b = 99)
 @test description(m, :b) == "a Float with a range and a description"
 @test m.a == 3
 @test m.b == 99
+@test paramrange(m) == ([0, 100], [2, 9])
+@test description(d) == ("an Int with a description", "a Float with a description")
 
 # docstrings
 "The Docs"
@@ -78,6 +81,8 @@ m = MissingKeyword(b = 99)
     "Bar"
     b::Float64 | [3,4]
 end
+
+@test paramrange(Documented) == ([1,2], [3,4])
 
 if VERSION<v"0.7-"
     @test "The Docs\n" == Markdown.plain(Base.Docs.doc(Documented))

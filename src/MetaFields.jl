@@ -8,6 +8,7 @@ export @metafield
 Generate a macro that constructs methods of the same name.
 These methods return the metafield information provided for each
 field of the struct.
+
 ```julia
 @metafield range
 @range struct Model
@@ -18,6 +19,7 @@ end
 model = Model(3, 5)
 range(model, Val{:a})
 range(model, Val{:b})
+```
 """
 macro metafield(name, default)
     symname = QuoteNode(name)
@@ -35,17 +37,17 @@ macro metafield(name, default)
             return getparams(ex, name; update = true)
         end
 
-        @inline function $name(x, key) 
-            $default
-        end
+        # Single field methods
+        @inline $name(x, key) = $default
+        @inline $name(x, key::Symbol) = $name(typeof(x), Val{key}) 
+        @inline $name(x, key::Type{Val{Symbol}}) = $name(typeof(x), key) 
+        @inline $name(x::Type, key::Symbol) = $name(x, Val{key}) 
 
-        @inline function $name(x, key::Symbol) 
-            $name(typeof(x), Val{key}) 
-        end
-
-        @inline function $name(x::Type, key::Symbol) 
-            $name(x, Val{key}) 
-        end
+        # All field methods
+        @inline $name(x) = $name(typeof(x)) 
+        @inline $name(x::Type) = $name(x, tuple(fieldnames(x)...))
+        @inline $name(x::Type, keys::Tuple{Symbol,Vararg}) = ($name(x, keys[1]), $name(x, keys[2:end])...)
+        @inline $name(x::Type, keys::Tuple{}) = tuple()
     end
 end
 
@@ -57,7 +59,7 @@ function getparams(ex, funcname; update = false)
 
     # Parse the block of lines inside the struct.
     # Function expressions are built for each field, and metadata removed.
-    findhead(ex, :block) do block
+    firsthead(ex, :block) do block
         for arg in block.args
             if !(:head in fieldnames(arg))
                 continue
@@ -88,6 +90,7 @@ end
 getkey(ex) = firsthead(y -> y.args[1], ex, :(::))
 
 function addmethod!(func_exps, funcname, typ, key, val)
+    # TODO make this less ugly
     func = esc(parse("function $funcname(x::Type{<:$typ}, y::Type{Val{:$key}}) :replace end"))
     findhead(func, :block) do l
         l.args[2] = val
