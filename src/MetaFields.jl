@@ -2,7 +2,6 @@ __precompile__()
 
 module MetaFields
 
-using Base: @pure
 
 export @metafield, @chain
 
@@ -43,22 +42,22 @@ macro metafield(name, default)
         end
 
         # Single field methods
-        Base.@pure $name(x, key) = $default
-        Base.@pure $name(x::Type, key::Type) = $default
-        Base.@pure $name(::X, key::Symbol) where X = $name(X, Val{key}) 
-        Base.@pure $name(x::X, key::Type) where X = $name(X, key) 
-        Base.@pure $name(::Type{X}, key::Symbol) where X = $name(X, Val{key}) 
+        $name(x, key) = $default
+        $name(x::Type, key::Type) = $default
+        $name(::X, key::Symbol) where X = $name(X, Val{key}) 
+        $name(x::X, key::Type) where X = $name(X, key) 
+        $name(::Type{X}, key::Symbol) where X = $name(X, Val{key}) 
 
         # All field methods
-        Base.@pure $name(::X) where X = $name(X) 
-        Base.@pure $name(::Type{X}) where X = begin
-            $name(X, tuple([Val{fn} for fn in fieldnames(X)]...))
-        end
-        Base.@pure $name(::Type{X}, keys::Tuple) where X = 
+        $name(::X) where X = $name(X) 
+        $name(x::Type{X}) where X = $name(X, fieldname_vals(X))
+        $name(::Type{X}, keys::Tuple) where X = 
             ($name(X, keys[1]), $name(X, Base.tail(keys))...)
-        @Base.pure $name(::Type{X}, keys::Tuple{}) where X = tuple()
+        $name(::Type{X}, keys::Tuple{}) where X = tuple()
     end
 end
+
+Base.@pure fieldname_vals(::Type{X}) where X = ([Val{fn} for fn in fieldnames(X)]...)
 
 """
 Chain together any macros. Useful for combining @metafield macros.
@@ -132,7 +131,7 @@ getkey(ex::Symbol) = ex
 
 function addmethod!(func_exps, funcname, typ, key, val)
     # TODO make this less ugly
-    func = esc(parse("Base.@pure function $funcname(::Type{<:$typ}, ::Type{Val{:$key}}) :replace end"))
+    func = esc(parse("function $funcname(::Type{<:$typ}, ::Type{Val{:$key}}) :replace end"))
     findhead(func, :block) do l
         l.args[2] = val
     end
