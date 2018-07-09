@@ -2,7 +2,9 @@ __precompile__()
 
 module MetaFields
 
-export @metafield
+using Base: @pure
+
+export @metafield, @chain
 
 """
 Generate a macro that constructs methods of the same name.
@@ -10,15 +12,18 @@ These methods return the metafield information provided for each
 field of the struct.
 
 ```julia
-@metafield range
-@range struct Model
-    a::Int = (1, 4)
-    b::Int = (4, 9)
+@metafield def_range (0, 0)
+@def_range struct Model
+    a::Int | (1, 4)
+    b::Int | (4, 9)
 end
 
 model = Model(3, 5)
-range(model, Val{:a})
-range(model, Val{:b})
+def_range(model, Val{:a})
+(1, 4)
+
+def_range(model)
+((1, 4), (4, 9))
 ```
 """
 macro metafield(name, default)
@@ -38,16 +43,46 @@ macro metafield(name, default)
         end
 
         # Single field methods
-        @inline $name(x, key) = $default
-        @inline $name(x, key::Symbol) = $name(typeof(x), Val{key}) 
-        @inline $name(x, key::Type{Val{Symbol}}) = $name(typeof(x), key) 
-        @inline $name(x::Type, key::Symbol) = $name(x, Val{key}) 
+        Base.@pure $name(x, key) = $default
+        Base.@pure $name(x::Type, key::Type) = $default
+        Base.@pure $name(::X, key::Symbol) where X = $name(X, Val{key}) 
+        Base.@pure $name(x::X, key::Type) where X = $name(X, key) 
+        Base.@pure $name(::Type{X}, key::Symbol) where X = $name(X, Val{key}) 
 
         # All field methods
-        @inline $name(x) = $name(typeof(x)) 
-        @inline $name(x::Type) = $name(x, tuple(fieldnames(x)...))
-        @inline $name(x::Type, keys::Tuple{Symbol,Vararg}) = ($name(x, keys[1]), $name(x, keys[2:end])...)
-        @inline $name(x::Type, keys::Tuple{}) = tuple()
+        Base.@pure $name(::X) where X = $name(X) 
+        Base.@pure $name(::Type{X}) where X = begin
+            $name(X, tuple([Val{fn} for fn in fieldnames(X)]...))
+        end
+        Base.@pure $name(::Type{X}, keys::Tuple) where X = 
+            ($name(X, keys[1]), $name(X, Base.tail(keys))...)
+        @Base.pure $name(::Type{X}, keys::Tuple{}) where X = tuple()
+    end
+end
+
+"""
+Chain together any macros. Useful for combining @metafield macros.
+
+### Example
+```julia
+@chain columns @label @units @default_kw
+
+@columns struct Foo
+  bar::Int | 7 | u"g" | "grams of bar"
+end
+```
+"""
+macro chain(name, ex)
+    macros = []
+    findhead(x -> push!(macros, x.args[1]), ex, :macrocall)
+    return quote
+        macro $(esc(name))(ex)
+            macros = $macros
+            for mac in reverse(macros)
+                ex = Expr(:macrocall, mac, ex)
+            end
+            esc(ex)
+        end
     end
 end
 
@@ -91,7 +126,7 @@ getkey(ex) = firsthead(y -> y.args[1], ex, :(::))
 
 function addmethod!(func_exps, funcname, typ, key, val)
     # TODO make this less ugly
-    func = esc(parse("function $funcname(x::Type{<:$typ}, y::Type{Val{:$key}}) :replace end"))
+    func = esc(parse("Base.@pure function $funcname(::Type{<:$typ}, ::Type{Val{:$key}}) :replace end"))
     findhead(func, :block) do l
         l.args[2] = val
     end

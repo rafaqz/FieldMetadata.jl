@@ -1,10 +1,11 @@
+using Revise
 using MetaFields
 using Parameters
 using Base.Test
 
 abstract type AbstractTest end
 @metafield paramrange [0, 1]
-@metafield description ""
+@metafield description "default"
 
 # TODO handle untyped fields
 
@@ -16,9 +17,27 @@ end
 
 d = Described(1, 1.0)
 @test description(d, :a) == "an Int with a description"  
+@test description(Described, Val{:a}) == "an Int with a description"  
+@test description(Described, :a) == "an Int with a description"  
+@test description(d, Val{:a}) == "an Int with a description"  
 @test description(typeof(d), :b) == "a Float with a description"  
-@test description(d, :c) == ""  
 @test description(d) == ("an Int with a description", "a Float with a description")
+
+@test description(d, :c) == "default"  
+@test description(d, Val{:c}) == "default"  
+@test description(Described, Val{:c}) == "default"  
+@test description(Described, :c) == "default"  
+
+@inferred description(d, :a)
+@inferred description(Described, Val{:a})
+@inferred description(Described, :a)
+@inferred description(d, Val{:a})
+@inferred description(typeof(d), :b)
+@inferred description(d, :c)
+@inferred description(d, Val{:c})
+@inferred description(Described, Val{:c})
+@inferred description(Described, :c)
+@inferred description(d)
 
 
 # range array
@@ -44,6 +63,7 @@ c = Combined(3,5)
 @test description(c, :b) == "a Float with a range and a description"  
 @test paramrange(typeof(c), :a) == [1, 4]
 @test paramrange(c, :b) == [0, 1]
+description(c, Val{:a})
 
 
 # with Parameters.jl keywords
@@ -95,3 +115,12 @@ else
     @test "Bar\n" == Markdown.plain(REPL.fielddoc(Documented, :b))
 end
 
+# redescribe
+@description mutable struct Described
+   a::Int     | "a new Int description"  
+   b::Float64 | "a new Float64 description"
+end
+@test description(d, :a) == "a new Int description"  
+@test description(d, :b) == "a new Float64 description"  
+@inferred description(d, :a) == "a new Int description"  
+@inferred description(d, :b) == "a new Float64 description"  
