@@ -89,29 +89,34 @@ end
 function getparams(ex, funcname; update = false)
     func_exps = Expr[]
     typ = firsthead(ex, :type) do typ_ex
-        return namify(typ_ex.args[2])
+        namify(typ_ex.args[2])
     end
 
     # Parse the block of lines inside the struct.
     # Function expressions are built for each field, and metadata removed.
     firsthead(ex, :block) do block
-        for arg in block.args
-            if !(:head in fieldnames(arg))
-                continue
-            elseif arg.head == :(=) # probably using @with_kw
-                # TODO make this ignore = in inner constructors
-                call = arg.args[2]
-                key = getkey(arg.args[1])
+        for (i, line) in enumerate(block.args)
+            :head in fieldnames(line) || continue
+            if line.head == :(=) # probably using @with_kw
+                # Ignore inner constructors
+                !(:head in fieldnames(line.args[1])) || line.args[1].head == :call && continue
+                call = line.args[2]
+                key = getkey(line.args[1])
                 val = call.args[3]
                 val == :_ || addmethod!(func_exps, funcname, typ, key, val)
-                arg.args[2] = call.args[2]
-            elseif arg.head == :call
-                arg.args[1] == :(|) || continue
-                key = getkey(arg.args[2])
-                val = arg.args[3]
+                line.args[2] = call.args[2]
+            elseif line.head == :call
+                line.args[1] == :(|) || continue
+                val = line.args[3]
+                key = getkey(line.args[2])
+                if :head in fieldnames(line.args[2])
+                    line.head = line.args[2].head
+                    line.args = line.args[2].args
+                else
+                    val == :_ || addmethod!(func_exps, funcname, typ, key, val)
+                    block.args[i] = line.args[2]
+                end
                 val == :_ || addmethod!(func_exps, funcname, typ, key, val)
-                arg.head = arg.args[2].head
-                arg.args = arg.args[2].args
             end
         end
     end
@@ -122,7 +127,8 @@ function getparams(ex, funcname; update = false)
     end
 end
 
-getkey(ex) = firsthead(y -> y.args[1], ex, :(::))
+getkey(ex::Expr) = firsthead(y -> y.args[1], ex, :(::))
+getkey(ex::Symbol) = ex
 
 function addmethod!(func_exps, funcname, typ, key, val)
     # TODO make this less ugly

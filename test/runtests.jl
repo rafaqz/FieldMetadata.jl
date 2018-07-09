@@ -7,26 +7,29 @@ abstract type AbstractTest end
 @metafield paramrange [0, 1]
 @metafield description "default"
 
-# TODO handle untyped fields
-
-
 @description mutable struct Described
-   a::Int     | "an Int with a description"  
-   b::Float64 | "a Float with a description"
+   a::Int     | "an Int"  
+   b::Float64 | "a Float"
+   c          | "an untyped field"
+   "An inner constructor should work, even with a docstring"
+   Described(a, b, c) = begin
+       new(a, b, c)
+   end
 end
 
-d = Described(1, 1.0)
-@test description(d, :a) == "an Int with a description"  
-@test description(Described, Val{:a}) == "an Int with a description"  
-@test description(Described, :a) == "an Int with a description"  
-@test description(d, Val{:a}) == "an Int with a description"  
-@test description(typeof(d), :b) == "a Float with a description"  
-@test description(d) == ("an Int with a description", "a Float with a description")
+d = Described(1, 1.0, nothing)
+@test description(d, :a) == "an Int"  
+@test description(Described, Val{:a}) == "an Int"  
+@test description(Described, :a) == "an Int"  
+@test description(d, Val{:a}) == "an Int"  
+@test description(typeof(d), :b) == "a Float"  
+@test description(typeof(d), :c) == "an untyped field"  
+@test description(d) == ("an Int", "a Float", "an untyped field")
 
-@test description(d, :c) == "default"  
-@test description(d, Val{:c}) == "default"  
-@test description(Described, Val{:c}) == "default"  
-@test description(Described, :c) == "default"  
+@test description(d, :d) == "default"  
+@test description(d, Val{:d}) == "default"  
+@test description(Described, Val{:d}) == "default"  
+@test description(Described, :d) == "default"  
 
 @inferred description(d, :a)
 @inferred description(Described, Val{:a})
@@ -91,7 +94,6 @@ m = MissingKeyword(b = 99)
 @test m.a == 3
 @test m.b == 99
 @test paramrange(m) == ([0, 100], [2, 9])
-@test description(d) == ("an Int with a description", "a Float with a description")
 
 # docstrings
 "The Docs"
@@ -115,12 +117,11 @@ else
     @test "Bar\n" == Markdown.plain(REPL.fielddoc(Documented, :b))
 end
 
-# redescribe
-@description mutable struct Described
+@redescription mutable struct Described
    a::Int     | "a new Int description"  
    b::Float64 | "a new Float64 description"
 end
 @test description(d, :a) == "a new Int description"  
 @test description(d, :b) == "a new Float64 description"  
-@inferred description(d, :a) == "a new Int description"  
-@inferred description(d, :b) == "a new Float64 description"  
+@inferred description(d, :a)
+@inferred description(d, :b)
