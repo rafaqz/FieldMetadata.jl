@@ -117,11 +117,37 @@ else
     @test "Bar\n" == Markdown.plain(REPL.fielddoc(Documented, :b))
 end
 
-@redescription mutable struct Described
-   a::Int     | "a new Int description"  
-   b::Float64 | "a new Float64 description"
+# update description
+@description mutable struct Described
+   a | "a new Int description"  
+   b | "a new Float64 description"
 end
 @test description(d, :a) == "a new Int description"  
 @test description(d, :b) == "a new Float64 description"  
 @inferred description(d, :a)
 @inferred description(d, :b)
+
+
+# Test metafield from another module
+module TestModule
+
+using MetaFields
+
+@metafield moduledefs 0
+
+@moduledefs struct TestStruct
+    a::Int | 1
+    b::Int | 2
+end
+
+end
+
+using TestModule
+using TestModule: TestStruct
+
+@test TestModule.TestStruct == TestStruct
+@test TestModule.moduledefs(TestModule.TestStruct) == (1, 2)
+@test TestModule.moduledefs(TestModule.TestStruct, Val{:a}) == 1
+@test TestModule.moduledefs(TestModule.TestStruct(9, 9), Val{:a}) == 1
+@test TestModule.moduledefs(TestModule.TestStruct, :b) == 2
+@test TestModule.moduledefs(TestModule.TestStruct(9, 9), :b) == 2

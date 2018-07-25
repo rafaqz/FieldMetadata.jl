@@ -36,11 +36,6 @@ macro metafield(name, default)
             return getparams(ex, name)
         end
 
-        macro $rename(ex)
-            name = $symname
-            return getparams(ex, name; update = true)
-        end
-
         # Single field methods
         $name(x, key) = $default
         $name(x::Type, key::Type) = $default
@@ -56,8 +51,6 @@ macro metafield(name, default)
         $name(::Type{X}, keys::Tuple{}) where X = tuple()
     end
 end
-
-Base.@pure fieldname_vals(::Type{X}) where X = ([Val{fn} for fn in fieldnames(X)]...)
 
 """
 Chain together any macros. Useful for combining @metafield macros.
@@ -85,7 +78,10 @@ macro chain(name, ex)
     end
 end
 
-function getparams(ex, funcname; update = false)
+
+Base.@pure fieldname_vals(::Type{X}) where X = ([Val{fn} for fn in fieldnames(X)]...)
+
+function getparams(ex, name)
     func_exps = Expr[]
     typ = firsthead(ex, :type) do typ_ex
         namify(typ_ex.args[2])
@@ -102,7 +98,7 @@ function getparams(ex, funcname; update = false)
                 call = line.args[2]
                 key = getkey(line.args[1])
                 val = call.args[3]
-                val == :_ || addmethod!(func_exps, funcname, typ, key, val)
+                val == :_ || addmethod!(func_exps, name, typ, key, val)
                 line.args[2] = call.args[2]
             elseif line.head == :call
                 line.args[1] == :(|) || continue
@@ -112,14 +108,14 @@ function getparams(ex, funcname; update = false)
                     line.head = line.args[2].head
                     line.args = line.args[2].args
                 else
-                    val == :_ || addmethod!(func_exps, funcname, typ, key, val)
+                    val == :_ || addmethod!(func_exps, name, typ, key, val)
                     block.args[i] = line.args[2]
                 end
-                val == :_ || addmethod!(func_exps, funcname, typ, key, val)
+                val == :_ || addmethod!(func_exps, name, typ, key, val)
             end
         end
     end
-    if update
+    if isdefined(typ)
         Expr(:block, func_exps...)
     else
         Expr(:block, :(Base.@__doc__ $(esc(ex))), func_exps...)
@@ -129,9 +125,9 @@ end
 getkey(ex::Expr) = firsthead(y -> y.args[1], ex, :(::))
 getkey(ex::Symbol) = ex
 
-function addmethod!(func_exps, funcname, typ, key, val)
+function addmethod!(func_exps, name, typ, key, val)
     # TODO make this less ugly
-    func = esc(parse("function $funcname(::Type{<:$typ}, ::Type{Val{:$key}}) :replace end"))
+    func = esc(parse("function $name(::Type{<:$typ}, ::Type{Val{:$key}}) :replace end"))
     findhead(func, :block) do l
         l.args[2] = val
     end
