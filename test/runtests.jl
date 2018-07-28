@@ -95,35 +95,16 @@ m = MissingKeyword(b = 99)
 @test m.b == 99
 @test paramrange(m) == ([0, 100], [2, 9])
 
-# docstrings
-"The Docs"
-@paramrange mutable struct Documented
-    "Foo"
-    a::Int     | [1,2]
-    "Bar"
-    b::Float64 | [3,4]
-end
-
-@test paramrange(Documented) == ([1,2], [3,4])
-
-if VERSION<v"0.7-"
-    @test "The Docs\n" == Markdown.plain(Base.Docs.doc(Documented))
-    @test "Foo\n" == Markdown.plain(Base.Docs.fielddoc(Documented, :a))
-    @test "Bar\n" == Markdown.plain(Base.Docs.fielddoc(Documented, :b))
-else
-    @eval using REPL
-    @test "The Docs\n" == Markdown.plain(REPL.doc(Documented))
-    @test "Foo\n" == Markdown.plain(REPL.fielddoc(Documented, :a))
-    @test "Bar\n" == Markdown.plain(REPL.fielddoc(Documented, :b))
-end
-
 # update description
-@description mutable struct Described
-   a | "a new Int description"  
-   b | "a new Float64 description"
+@paramrange @description mutable struct Described{T}
+    a::T | "a new Int description"     | [99,100]
+    b::T | "a new Float64 description" | [-3,-4]
 end
+
 @test description(d, :a) == "a new Int description"  
 @test description(d, :b) == "a new Float64 description"  
+@test paramrange(d, :a) == [99,100]
+@test paramrange(d, :b) == [-3,-4]
 @inferred description(d, :a)
 @inferred description(d, :b)
 
@@ -151,3 +132,27 @@ using TestModule: TestStruct
 @test TestModule.moduledefs(TestModule.TestStruct(9, 9), Val{:a}) == 1
 @test TestModule.moduledefs(TestModule.TestStruct, :b) == 2
 @test TestModule.moduledefs(TestModule.TestStruct(9, 9), :b) == 2
+
+
+# docstrings
+"The Docs"
+@paramrange mutable struct Documented
+    "Foo"
+    a::Int     | [1,2]
+    "Bar"
+    b::Float64 | [3,4]
+end
+
+@test paramrange(Documented) == ([1,2], [3,4])
+
+if VERSION<v"0.7-"
+    @test "The Docs\n" == Markdown.plain(Base.Docs.doc(Documented))
+    @test "Foo\n" == Markdown.plain(Base.Docs.fielddoc(Documented, :a))
+    @test "Bar\n" == Markdown.plain(Base.Docs.fielddoc(Documented, :b))
+else
+    @eval using REPL
+    @test "The Docs\n" == Markdown.plain(REPL.doc(Documented))
+    @test "Foo\n" == Markdown.plain(REPL.fielddoc(Documented, :a))
+    @test "Bar\n" == Markdown.plain(REPL.fielddoc(Documented, :b))
+end
+

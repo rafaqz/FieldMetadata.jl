@@ -78,10 +78,12 @@ macro chain(name, ex)
     end
 end
 
-
 Base.@pure fieldname_vals(::Type{X}) where X = ([Val{fn} for fn in fieldnames(X)]...)
 
 function getparams(ex, name)
+    macros = []
+    findhead(x -> push!(macros, x.args[1]), ex, :macrocall)
+
     func_exps = Expr[]
     typ = firsthead(ex, :type) do typ_ex
         namify(typ_ex.args[2])
@@ -115,7 +117,7 @@ function getparams(ex, name)
             end
         end
     end
-    if isdefined(typ)
+    if isdefined(typ) && length(macros) == 0
         Expr(:block, func_exps...)
     else
         Expr(:block, :(Base.@__doc__ $(esc(ex))), func_exps...)
