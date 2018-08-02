@@ -166,4 +166,11 @@ end
 namify(x::Symbol) = x
 namify(x::Expr) = namify(x.args[1])
 
+
+# MetaField placeholders
+@metafield default nothing
+@metafield units nothing
+@metafield prior nothing
+@metafield label ""
+
 end # module
