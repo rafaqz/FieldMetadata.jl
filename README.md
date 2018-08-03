@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/rafaqz/MetaFields.jl.svg?branch=master)](https://travis-ci.org/rafaqz/MetaFields.jl)
 [![Coverage Status](https://coveralls.io/repos/rafaqz/MetaFields.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/rafaqz/MetaFields.jl?branch=master)
 
-This package allows defining metadata for fields in a struct, similar to tags in go. But named and inifitely
+This package allows defining metadata for fields in a struct, similar to tags in go. But named and infinitely
 extensible.
 
 They use a similar syntax to Parameters.jl, with a `|` bar instead of
