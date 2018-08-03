@@ -4,9 +4,12 @@
 [![Coverage Status](https://coveralls.io/repos/rafaqz/MetaFields.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/rafaqz/MetaFields.jl?branch=master)
 
 This package allows defining metadata that relate to the fields
-in a struct, using a similar syntax to Parameters.jl, with a `|` bar instead of
+in a struct, similar to tags in Go.
+It uses a similar syntax to Parameters.jl, with a `|` bar instead of
 `=`. You can, in fact, use it as a replacement for Parameters.jl with the aid of 
 [Defaults.jl](https://github.com/rafaqz/Defaults.jl).
+
+
 
 ```julia
 @metafield describe ""
@@ -59,3 +62,13 @@ the field type.
 
 You can also update or add fields on a type that is already declared using the
 same syntax, but you don't need to include all fields or even their types.
+
+
+# MetaField placeholders
+
+Metafields provides an api of some simple metafields to be used accross
+packages: `default`, `units`, `prior`, and `label`. To use them, call:
+
+```
+import Metafields: @prior, prior
+```
