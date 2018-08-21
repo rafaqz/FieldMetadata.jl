@@ -1,7 +1,8 @@
-using Revise
-using MetaFields
-using Parameters
-using Base.Test
+using Revise,
+      MetaFields,
+      Parameters,
+      Test,
+      Markdown
 
 abstract type AbstractTest end
 @metafield paramrange [0, 1]
@@ -107,31 +108,6 @@ end
 @test paramrange(d, :b) == [-3,-4]
 @inferred description(d, :a)
 @inferred description(d, :b)
-
-
-# Test metafield from another module
-module TestModule
-
-using MetaFields
-
-@metafield moduledefs 0
-
-@moduledefs struct TestStruct
-    a::Int | 1
-    b::Int | 2
-end
-
-end
-
-using TestModule
-using TestModule: TestStruct
-
-@test TestModule.TestStruct == TestStruct
-@test TestModule.moduledefs(TestModule.TestStruct) == (1, 2)
-@test TestModule.moduledefs(TestModule.TestStruct, Val{:a}) == 1
-@test TestModule.moduledefs(TestModule.TestStruct(9, 9), Val{:a}) == 1
-@test TestModule.moduledefs(TestModule.TestStruct, :b) == 2
-@test TestModule.moduledefs(TestModule.TestStruct(9, 9), :b) == 2
 
 
 # docstrings

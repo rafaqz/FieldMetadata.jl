@@ -28,7 +28,7 @@ def_range(model)
 macro metafield(name, default)
     symname = QuoteNode(name)
     default = esc(default)
-    rename = esc(parse("re$name"))
+    rename = esc(Meta.parse("re$name"))
     name = esc(name)
     return quote
         macro $name(ex)
@@ -78,25 +78,23 @@ macro chain(name, ex)
     end
 end
 
-Base.@pure fieldname_vals(::Type{X}) where X = ([Val{fn} for fn in fieldnames(X)]...)
+Base.@pure fieldname_vals(::Type{X}) where X = ([Val{fn} for fn in fieldnames(X)]...,)
 
 function getparams(ex, name)
     macros = []
     findhead(x -> push!(macros, x.args[1]), ex, :macrocall)
 
+    typ = firsthead(x -> namify(x.args[2]), ex, :struct) 
     func_exps = Expr[]
-    typ = firsthead(ex, :type) do typ_ex
-        namify(typ_ex.args[2])
-    end
 
     # Parse the block of lines inside the struct.
     # Function expressions are built for each field, and metadata removed.
     firsthead(ex, :block) do block
         for (i, line) in enumerate(block.args)
-            :head in fieldnames(line) || continue
+            :head in fieldnames(typeof(line)) || continue
             if line.head == :(=) # probably using @with_kw
                 # Ignore inner constructors
-                !(:head in fieldnames(line.args[1])) || line.args[1].head == :call && continue
+                !(:head in fieldnames(typeof(line.args[1]))) || line.args[1].head == :call && continue
                 call = line.args[2]
                 key = getkey(line.args[1])
                 val = call.args[3]
@@ -106,7 +104,7 @@ function getparams(ex, name)
                 line.args[1] == :(|) || continue
                 val = line.args[3]
                 key = getkey(line.args[2])
-                if :head in fieldnames(line.args[2])
+                if :head in fieldnames(typeof(line.args[2]))
                     line.head = line.args[2].head
                     line.args = line.args[2].args
                 else
@@ -129,48 +127,46 @@ getkey(ex::Symbol) = ex
 
 function addmethod!(func_exps, name, typ, key, val)
     # TODO make this less ugly
-    func = esc(parse("function $name(::Type{<:$typ}, ::Type{Val{:$key}}) :replace end"))
+    func = esc(Meta.parse("function $name(::Type{<:$typ}, ::Type{Val{:$key}}) :replace end"))
     findhead(func, :block) do l
         l.args[2] = val
     end
     push!(func_exps, func)
 end
 
-function findhead(f, ex, sym) 
+findhead(f, ex::Expr, sym) = begin
     found = false
-    if :head in fieldnames(ex)
-        if ex.head == sym
-            f(ex)
-            found = true
-        end
-        found |= any(findhead.(f, ex.args, sym))
+    if ex.head == sym
+        f(ex)
+        found = true
     end
-    return found
+    found |= any(findhead.(f, ex.args, sym))
 end
+findhead(f, ex, sym) = false 
 
-function firsthead(f, ex, sym) 
-    if :head in fieldnames(ex)
-        if ex.head == sym 
-            out = f(ex)
-            return out
-        else
-            for arg in ex.args
-                x = firsthead(f, arg, sym)
-                x == nothing || return x
-            end
+firsthead(f, ex::Expr, sym) = 
+    if ex.head == sym 
+        out = f(ex)
+        return out
+    else
+        for arg in ex.args
+            x = firsthead(f, arg, sym)
+            x == nothing || return x
         end
+        return nothing
     end
-    return nothing
-end
+firsthead(f, ex, sym) = nothing
 
-namify(x::Symbol) = x
+namify(x) = x
 namify(x::Expr) = namify(x.args[1])
+
 
 
 # MetaField placeholders
 @metafield default nothing
 @metafield units nothing
 @metafield prior nothing
-@metafield label ""
+@metafield description ""
+@metafield limits (0.0, 1.0)
 
 end # module
