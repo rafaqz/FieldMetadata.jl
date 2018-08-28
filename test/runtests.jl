@@ -1,12 +1,12 @@
 using Revise,
-      MetaFields,
+      Tags,
       Parameters,
       Test,
       Markdown
 
 abstract type AbstractTest end
-@metafield paramrange [0, 1]
-@metafield description "default"
+@tag paramrange [0, 1]
+@tag description "default"
 
 @description mutable struct Described
    a::Int     | "an Int"  
@@ -43,6 +43,11 @@ d = Described(1, 1.0, nothing)
 @inferred description(Described, :c)
 @inferred description(d)
 
+ex = :(@some @arbitrary @macros struct TestMacros{T}
+        a::T | u"1"
+        b::T | u"2"
+    end)
+@test Tags.chained_macros(ex) == [Symbol("@some"), Symbol("@arbitrary"), Symbol("@macros")] 
 
 # range array
 @paramrange struct WithRange <: AbstractTest
@@ -56,7 +61,7 @@ w = WithRange(2,5)
 @test paramrange(w) == ([1, 4], [4, 9])
 
 
-# combinations of metafields
+# combinations of tags
 @description @paramrange struct Combined{T} <: AbstractTest
     a::T | [1, 4]  | "an Int with a range and a description"
     b::T | _       | "a Float with a range and a description"
@@ -102,10 +107,10 @@ m = MissingKeyword(b = 99)
     b::T | "a new Float64 description" | [-3,-4]
 end
 
-@test description(d, :a) == "a new Int description"  
-@test description(d, :b) == "a new Float64 description"  
 @test paramrange(d, :a) == [99,100]
 @test paramrange(d, :b) == [-3,-4]
+@test description(d, :a) == "a new Int description"  
+@test description(d, :b) == "a new Float64 description"  
 @inferred description(d, :a)
 @inferred description(d, :b)
 
@@ -132,3 +137,10 @@ else
     @test "Bar\n" == Markdown.plain(REPL.fielddoc(Documented, :b))
 end
 
+
+@chain columns @paramrange @description
+
+@columns mutable struct Described{T}
+    a::T | "a new Int description"     | [99,100]
+    b::T | "a new Float64 description" | [-3,-4]
+end
