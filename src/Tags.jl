@@ -34,6 +34,11 @@ macro tag(name, default)
             return add_field_funcs(ex, name)
         end
 
+        macro $rename(ex)
+            name = $symname
+            return add_field_funcs(ex, name; update=true)
+        end
+
         # Single field methods
         $name(x, key) = $default
         $name(x::Type, key::Type) = $default
@@ -77,7 +82,7 @@ end
 
 Base.@pure fieldname_vals(::Type{X}) where X = ([Val{fn} for fn in fieldnames(X)]...,)
 
-function add_field_funcs(ex, name)
+function add_field_funcs(ex, name; update=false)
     macros = chained_macros(ex)
 
     typ = firsthead(x -> namify(x.args[2]), ex, :struct)
@@ -111,7 +116,7 @@ function add_field_funcs(ex, name)
             end
         end
     end
-    if isdefined(typ) && length(macros) == 0
+    if update && length(macros) == 0
         Expr(:block, func_exps...)
     else
         Expr(:block, :(Base.@__doc__ $(esc(ex))), func_exps...)

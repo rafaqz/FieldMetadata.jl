@@ -102,7 +102,7 @@ m = MissingKeyword(b = 99)
 @test paramrange(m) == ([0, 100], [2, 9])
 
 # update description
-@paramrange @description mutable struct Described{T}
+@reparamrange @redescription mutable struct Described{T}
     a::T | "a new Int description"     | [99,100]
     b::T | "a new Float64 description" | [-3,-4]
 end
@@ -138,7 +138,7 @@ else
 end
 
 
-@chain columns @paramrange @description
+@chain columns @reparamrange @redescription
 
 @columns mutable struct Described{T}
     a::T | "a new Int description"     | [99,100]
