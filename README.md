@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/rafaqz/Tags.jl.svg?branch=master)](https://travis-ci.org/rafaqz/Tags.jl)
 [![Coverage Status](https://coveralls.io/repos/rafaqz/Tags.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/rafaqz/Tags.jl?branch=master)
+[![codecov.io](http://codecov.io/github/rafaqz/Tags.jl/coverage.svg?branch=master)](http://codecov.io/github/rafaqz/Tags.jl?branch=master)
 
 This package lets you define metadata about fields in a struct, similar to tags
 in Go. It uses a similar syntax to Parameters.jl, with a `|` bar instead of `=`.
