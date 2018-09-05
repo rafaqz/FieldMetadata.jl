@@ -4,9 +4,9 @@
 [![Coverage Status](https://coveralls.io/repos/rafaqz/Tags.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/rafaqz/Tags.jl?branch=master)
 [![codecov.io](http://codecov.io/github/rafaqz/Tags.jl/coverage.svg?branch=master)](http://codecov.io/github/rafaqz/Tags.jl?branch=master)
 
-This package lets you define metadata about fields in a struct, similar to tags
+This package lets you define metadata about fields in a struct, like tags
 in Go. It uses a similar syntax to Parameters.jl, with a `|` bar instead of `=`.
-You can, in fact, use it as a replacement for Parameters.jl with the aid of
+You can use it as a minimalist replacement for Parameters.jl with the aid of
 [Defaults.jl](https://github.com/rafaqz/Defaults.jl).
 
 
