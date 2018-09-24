@@ -126,12 +126,8 @@ end
 getkey(ex::Expr) = firsthead(y -> y.args[1], ex, :(::))
 getkey(ex::Symbol) = ex
 
-function addmethod!(func_exps, name, typ, key, val)
-    # TODO make this less ugly
-    func = esc(Meta.parse("function $name(::Type{<:$typ}, ::Type{Val{:$key}}) :replace end"))
-    findhead(func, :block) do l
-        l.args[2] = val
-    end
+function addmethod!(func_exps, name, typ, key, value)
+    func = esc(:(function $name(::Type{<:$typ}, ::Type{Val{$(QuoteNode(key))}}) $value end))
     push!(func_exps, func)
 end
 
@@ -180,5 +176,9 @@ namify(x::Expr) = namify(x.args[1])
 @tag prior nothing
 @tag description ""
 @tag limits (0.0, 1.0)
+@tag label ""
+
+# Set the default label to be the field name
+label(x, ::Val{F}) where F = F
 
 end # module
