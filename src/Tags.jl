@@ -179,6 +179,6 @@ namify(x::Expr) = namify(x.args[1])
 @tag label ""
 
 # Set the default label to be the field name
-label(x, ::Val{F}) where F = F
+label(x::Type, ::Type{Val{F}}) where F = F
 
 end # module
