@@ -9,7 +9,7 @@ These methods return the metadata information provided for each
 field of the struct.
 
 ```julia
-@tag def_range (0, 0)
+@metadata def_range (0, 0)
 @def_range struct Model
     a::Int | (1, 4)
     b::Int | (4, 9)
