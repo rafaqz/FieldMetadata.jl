@@ -41,7 +41,7 @@ build_script:
 # Need to convert from shallow to complete for Pkg.clone to work
   - IF EXIST .git\shallow (git fetch --unshallow)
   - C:\projects\julia\bin\julia -e "versioninfo();
-      Pkg.clone(pwd(), \"Tags\"); Pkg.build(\"Tags\")"
+      Pkg.clone(pwd(), \"FieldMetadata\"); Pkg.build(\"FieldMetadata\")"
 
 test_script:
-  - C:\projects\julia\bin\julia -e "Pkg.test(\"Tags\")"
+  - C:\projects\julia\bin\julia -e "Pkg.test(\"FieldMetadata\")"

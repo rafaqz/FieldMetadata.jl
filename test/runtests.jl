@@ -1,12 +1,12 @@
 using Revise,
-      Tags,
+      FieldMetadata,
       Parameters,
       Test,
       Markdown
 
 abstract type AbstractTest end
-@tag paramrange [0, 1]
-@tag description "default"
+@metadata paramrange [0, 1]
+@metadata description "default"
 
 @description mutable struct Described
    a::Int     | "an Int"  
@@ -47,7 +47,7 @@ ex = :(@some @arbitrary @macros struct TestMacros{T}
         a::T | u"1"
         b::T | u"2"
     end)
-@test Tags.chained_macros(ex) == [Symbol("@some"), Symbol("@arbitrary"), Symbol("@macros")] 
+@test FieldMetadata.chained_macros(ex) == [Symbol("@some"), Symbol("@arbitrary"), Symbol("@macros")] 
 
 # range array
 @paramrange struct WithRange <: AbstractTest
@@ -61,7 +61,7 @@ w = WithRange(2,5)
 @test paramrange(w) == ([1, 4], [4, 9])
 
 
-# combinations of tags
+# combinations of metadata
 @description @paramrange struct Combined{T} <: AbstractTest
     a::T | [1, 4]  | "an Int with a range and a description"
     b::T | _       | "a Float with a range and a description"
@@ -144,3 +144,4 @@ end
     a::T | "a new Int description"     | [99,100]
     b::T | "a new Float64 description" | [-3,-4]
 end
+

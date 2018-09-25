@@ -1,11 +1,11 @@
-module Tags
+module FieldMetadata
 
 
-export @tag, @chain
+export @metadata, @chain
 
 """
 Generate a macro that constructs methods of the same name.
-These methods return the tag information provided for each
+These methods return the metadata information provided for each
 field of the struct.
 
 ```julia
@@ -23,7 +23,7 @@ def_range(model)
 ((1, 4), (4, 9))
 ```
 """
-macro tag(name, default)
+macro metadata(name, default)
     symname = QuoteNode(name)
     default = esc(default)
     rename = esc(Meta.parse("re$name"))
@@ -56,7 +56,7 @@ macro tag(name, default)
 end
 
 """
-Chain together any macros. Useful for combining @tag macros.
+Chain together any macros. Useful for combining @metadata macros.
 
 ### Example
 ```julia
@@ -73,7 +73,7 @@ macro chain(name, ex)
         macro $(esc(name))(ex)
             macros = $macros
             for mac in reverse(macros)
-                ex = Expr(:macrocall, mac, LineNumberNode(74, "Tags.jl"), ex)
+                ex = Expr(:macrocall, mac, LineNumberNode(74, "FieldMetadata.jl"), ex)
             end
             esc(ex)
         end
@@ -170,13 +170,13 @@ namify(x::Expr) = namify(x.args[1])
 
 
 
-# Tags placeholders
-@tag default nothing
-@tag units nothing
-@tag prior nothing
-@tag description ""
-@tag limits (0.0, 1.0)
-@tag label ""
+# FieldMetadata placeholders
+@metadata default nothing
+@metadata units nothing
+@metadata prior nothing
+@metadata description ""
+@metadata limits (0.0, 1.0)
+@metadata label ""
 
 # Set the default label to be the field name
 label(x::Type, ::Type{Val{F}}) where F = F

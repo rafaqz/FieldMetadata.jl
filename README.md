@@ -1,15 +1,15 @@
-# Tags
+# FieldMetadata
 
-[![Build Status](https://travis-ci.org/rafaqz/Tags.jl.svg?branch=master)](https://travis-ci.org/rafaqz/Tags.jl)
-[![Coverage Status](https://coveralls.io/repos/rafaqz/Tags.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/rafaqz/Tags.jl?branch=master)
-[![codecov.io](http://codecov.io/github/rafaqz/Tags.jl/coverage.svg?branch=master)](http://codecov.io/github/rafaqz/Tags.jl?branch=master)
+[![Build Status](https://travis-ci.org/rafaqz/FieldMetadata.jl.svg?branch=master)](https://travis-ci.org/rafaqz/FieldMetadata.jl)
+[![Coverage Status](https://coveralls.io/repos/rafaqz/FieldMetadata.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/rafaqz/FieldMetadata.jl?branch=master)
+[![codecov.io](http://codecov.io/github/rafaqz/FieldMetadata.jl/coverage.svg?branch=master)](http://codecov.io/github/rafaqz/FieldMetadata.jl?branch=master)
 
 This package lets you define metadata about fields in a struct, like tags
 in Go. It uses a similar syntax to Parameters.jl, with a `|` bar instead of `=`.
 You can use it as a minimalist replacement for Parameters.jl with the aid of
 [Defaults.jl](https://github.com/rafaqz/Defaults.jl).
 
-Tags on nested structs can be flattened into a vector or tuple very efficiently with [Flatten.jl](https://github.com/rafaqz/Flatten.jl), where they are also used to 
+FieldMetadata on nested structs can be flattened into a vector or tuple very efficiently with [Flatten.jl](https://github.com/rafaqz/Flatten.jl), where they are also used to 
 exclude fields from flattening.
 
 
@@ -84,10 +84,10 @@ julia> describe(d)
 
 # Tag placeholders
 
-Tags provides an api of some simple tag to be used accross
+FieldMetadata provides an api of some simple tag to be used accross
 packages: `default`, `units`, `prior`, `description` and `limits`. To use them, call:
 ```
-import Tags: @prior, @reprior, prior
+import FieldMetadata: @prior, @reprior, prior
 ```
 
 You _must_ `import` at least the function to use these placeholders, `using` is
