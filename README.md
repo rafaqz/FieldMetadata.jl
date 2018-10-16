@@ -82,7 +82,7 @@ julia> describe(d)
 ```
 
 
-# Tag placeholders
+# Metadata placeholders
 
 FieldMetadata provides an api of some simple tag to be used accross
 packages: `default`, `units`, `prior`, `description` and `limits`. To use them, call:
