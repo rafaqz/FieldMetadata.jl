@@ -67,14 +67,15 @@ same syntax, by prepending `re` to the start of the macro, like `@redescribe`.
 You don't need to include all fields or their types.
 
 ```
+
+julia> describe(d)                                                                                                     
+("an Int with a description", "a Float with a description")  
+
 @redescribe struct Described
    b | "a much better description"
 end
 
 julia> d = Described(1, 1.0)
-
-julia> describe(d)                                                                                                     
-("an Int with a description", "a Float with a description")  
 
 julia> describe(d)
 ("an Int with a description", "a much better description")
