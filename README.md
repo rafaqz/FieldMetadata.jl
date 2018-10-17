@@ -66,8 +66,7 @@ You can also update or add fields on a type that is already declared using the
 same syntax, by prepending `re` to the start of the macro, like `@redescribe`.
 You don't need to include all fields or their types.
 
-```
-
+```julia
 julia> describe(d)                                                                                                     
 ("an Int with a description", "a Float with a description")  
 
@@ -86,7 +85,7 @@ julia> describe(d)
 
 FieldMetadata provides an api of some simple metadata tags to be used accross
 packages: `default`, `units`, `prior`, `description` and `limits`. To use them, call:
-```
+```julia
 import FieldMetadata: @prior, @reprior, prior
 ```
 
