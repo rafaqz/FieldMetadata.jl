@@ -12,7 +12,7 @@ You can use it as a minimalist replacement for Parameters.jl with the aid of
 FieldMetadata on nested structs can be flattened into a vector or tuple very efficiently with [Flatten.jl](https://github.com/rafaqz/Flatten.jl), where they are also used to 
 exclude fields from flattening.
 
-
+This example that adds string description metadata to fields in a struct:
 
 ```julia
 @metadata describe ""
@@ -56,9 +56,8 @@ julia> paramrange(k, :a)
 ""  
 ```
 
-You can chain as many tag together as you want. 
-
-Just remember that the data for the first `@metadata` macro goes at the end on the
+You can chain as many metadata macros together as you want. Just remember that 
+the data for the first `@metadata` macro goes at the end on the
 line in the struct. This makes sense when you consider that a macro like
 @with_kw from Parameters.jl has to be the last macro, but the first item in the
 row after the field type.
@@ -67,26 +66,26 @@ You can also update or add fields on a type that is already declared using the
 same syntax, by prepending `re` to the start of the macro, like `@redescribe`.
 You don't need to include all fields or their types.
 
-```
+```julia
+julia> describe(d)                                                                                                     
+("an Int with a description", "a Float with a description")  
+
 @redescribe struct Described
    b | "a much better description"
 end
 
 julia> d = Described(1, 1.0)
 
-julia> describe(d)                                                                                                     
-("an Int with a description", "a Float with a description")  
-
 julia> describe(d)
 ("an Int with a description", "a much better description")
 ```
 
 
-# Tag placeholders
+# Metadata placeholders
 
-FieldMetadata provides an api of some simple tag to be used accross
+FieldMetadata provides an api of some simple metadata tags to be used accross
 packages: `default`, `units`, `prior`, `description` and `limits`. To use them, call:
-```
+```julia
 import FieldMetadata: @prior, @reprior, prior
 ```
 
