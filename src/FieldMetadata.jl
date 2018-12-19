@@ -1,6 +1,5 @@
 module FieldMetadata
 
-
 export @metadata, @chain
 
 """
@@ -133,7 +132,6 @@ end
 
 chained_macros(ex) = chained_macros!(Symbol[], ex)
 
-chained_macros!(macros, ex) = macros
 chained_macros!(macros, ex::Expr) = begin
     if ex.head == :macrocall
         push!(macros, ex.args[1])
@@ -141,16 +139,6 @@ chained_macros!(macros, ex::Expr) = begin
     end
     macros
 end
-
-findhead(f, ex::Expr, sym) = begin
-    found = false
-    if ex.head == sym
-        f(ex)
-        found = true
-    end
-    found |= any(findhead.(f, ex.args, sym))
-end
-findhead(f, ex, sym) = false
 
 firsthead(f, ex::Expr, sym) =
     if ex.head == sym
