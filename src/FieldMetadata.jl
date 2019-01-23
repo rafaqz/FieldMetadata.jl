@@ -165,6 +165,8 @@ namify(x::Expr) = namify(x.args[1])
 @metadata description ""
 @metadata limits (0.0, 1.0)
 @metadata label ""
+@metadata flattenable true
+@metadata plottable true
 
 # Set the default label to be the field name
 label(x::Type, ::Type{Val{F}}) where F = F
