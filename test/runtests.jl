@@ -8,24 +8,29 @@ abstract type AbstractTest end
 @metadata paramrange [0, 1]
 @metadata description "default"
 
-@description mutable struct Described
-   a::Int     | "an Int"  
-   b::Float64 | "a Float"
-   c          | "an untyped field"
+@description mutable struct Described{P}
+   a::Int | "an Int"  
+   b      | "an untyped field"
+   c::P   | "a parametric field"
    "An inner constructor should work, even with a docstring"
    Described(a, b, c) = begin
-       new(a, b, c)
+       new{typeof(c)}(a, b, c)
+   end
+   function Described(a, b) 
+       new{Nothing}(a, b, nothing)
    end
 end
 
 d = Described(1, 1.0, nothing)
+@test typeof(d) == typeof(Described(1, 1.0))
+
 @test description(d, :a) == "an Int"  
 @test description(Described, Val{:a}) == "an Int"  
 @test description(Described, :a) == "an Int"  
 @test description(d, Val{:a}) == "an Int"  
-@test description(typeof(d), :b) == "a Float"  
-@test description(typeof(d), :c) == "an untyped field"  
-@test description(d) == ("an Int", "a Float", "an untyped field")
+@test description(typeof(d), :b) == "an untyped field"  
+@test description(typeof(d), :c) == "a parametric field"  
+@test description(d) == ("an Int", "an untyped field", "a parametric field")
 
 @test description(d, :d) == "default"  
 @test description(d, Val{:d}) == "default"  
@@ -92,6 +97,7 @@ k = Keyword()
 @description @paramrange @with_kw struct MissingKeyword{T} <: AbstractTest
     a::T = 3 | [0, 100] | "an Int with a range and a description"
     b::T     | [2, 9]   | "a Float with a range and a description"
+    MissingKeyword{T}(a::T, b::T) where T = new{T}(a, b)
 end
 
 m = MissingKeyword(b = 99)
@@ -137,6 +143,8 @@ else
     @test "Bar\n" == Markdown.plain(REPL.fielddoc(Documented, :b))
 end
 
+
+# chaining macros 
 
 @chain columns @reparamrange @redescription
 

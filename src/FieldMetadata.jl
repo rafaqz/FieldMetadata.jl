@@ -1,5 +1,7 @@
 module FieldMetadata
 
+using MacroTools
+
 export @metadata, @chain
 
 """
@@ -42,7 +44,7 @@ macro metadata(name, default)
         $name(x, key) = $default
         $name(x::Type, key::Type) = $default
         $name(::X, key::Symbol) where X = $name(X, Val{key})
-        $name(x::X, key::Type) where X = $name(X, key)
+        $name(::X, key::Type) where X = $name(X, key)
         $name(::Type{X}, key::Symbol) where X = $name(X, Val{key})
 
         # All field methods
@@ -92,15 +94,13 @@ function add_field_funcs(ex, name; update=false)
     firsthead(ex, :block) do block
         for (i, line) in enumerate(block.args)
             :head in fieldnames(typeof(line)) || continue
-            if line.head == :(=) # probably using @with_kw
-                # Ignore inner constructors
-                !(:head in fieldnames(typeof(line.args[1]))) || line.args[1].head == :call && continue
+            if @capture(line, n_::T_ = x__)
                 call = line.args[2]
                 key = getkey(line.args[1])
                 val = call.args[3]
                 val == :_ || addmethod!(func_exps, name, typ, key, val)
                 line.args[2] = call.args[2]
-            elseif line.head == :call
+            elseif @capture(line, n_::T_ | x__)
                 line.args[1] == :(|) || continue
                 val = line.args[3]
                 key = getkey(line.args[2])
