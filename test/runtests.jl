@@ -95,7 +95,7 @@ k = Keyword()
 
 # with missing keywords
 @description @paramrange @with_kw struct MissingKeyword{T} <: AbstractTest
-    a::T = 3 | [0, 100] | "an Int with a range and a description"
+    a    = 3 | [0, 100] | "an Int with a range and a description"
     b::T     | [2, 9]   | "a Float with a range and a description"
     MissingKeyword{T}(a::T, b::T) where T = new{T}(a, b)
 end
@@ -110,7 +110,7 @@ m = MissingKeyword(b = 99)
 # update description
 @reparamrange @redescription mutable struct Described{T}
     a::T | "a new Int description"     | [99,100]
-    b::T | "a new Float64 description" | [-3,-4]
+    b    | "a new Float64 description" | [-3,-4]
 end
 
 @test paramrange(d, :a) == [99,100]

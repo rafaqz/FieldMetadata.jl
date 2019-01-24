@@ -1,7 +1,5 @@
 module FieldMetadata
 
-using MacroTools
-
 export @metadata, @chain
 
 """
@@ -83,6 +81,7 @@ end
 
 Base.@pure fieldname_vals(::Type{X}) where X = ([Val{fn} for fn in fieldnames(X)]...,)
 
+
 function add_field_funcs(ex, name; update=false)
     macros = chained_macros(ex)
 
@@ -94,24 +93,27 @@ function add_field_funcs(ex, name; update=false)
     firsthead(ex, :block) do block
         for (i, line) in enumerate(block.args)
             :head in fieldnames(typeof(line)) || continue
-            if @capture(line, n_::T_ = x__)
+            if line.head == :(=)
                 call = line.args[2]
-                key = getkey(line.args[1])
-                val = call.args[3]
-                val == :_ || addmethod!(func_exps, name, typ, key, val)
+                call.args[1] == :(|) || continue
+                # The fieldname is the first arg
+                fn = line.args[1]
+                addmethod_unlessdefault!(func_exps, name, typ, fn, call)
+                # Replace the rest of the line after the = call
                 line.args[2] = call.args[2]
-            elseif @capture(line, n_::T_ | x__)
-                line.args[1] == :(|) || continue
-                val = line.args[3]
-                key = getkey(line.args[2])
-                if :head in fieldnames(typeof(line.args[2]))
-                    line.head = line.args[2].head
-                    line.args = line.args[2].args
+            elseif line.head == :call || line.args[1] == :(|)
+                # The fieldname is the second arg
+                fn = line.args[2]
+                if :head in fieldnames(typeof(fn))
+                    addmethod_unlessdefault!(func_exps, name, typ, fn, line)
+                    # Replace the line with the field
+                    line.head = fn.head
+                    line.args = fn.args
                 else
-                    val == :_ || addmethod!(func_exps, name, typ, key, val)
+                    addmethod_unlessdefault!(func_exps, name, typ, fn, line)
+                    # Replace the line in the parent block
                     block.args[i] = line.args[2]
                 end
-                val == :_ || addmethod!(func_exps, name, typ, key, val)
             end
         end
     end
@@ -122,13 +124,30 @@ function add_field_funcs(ex, name; update=false)
     end
 end
 
-getkey(ex::Expr) = firsthead(y -> y.args[1], ex, :(::))
-getkey(ex::Symbol) = ex
+function addmethod_unlessdefault!(func_exps, name, typ, fn, ex)
+    # Get just the fieldname symbol from the full fieldname
+    val = ex.args[3]
+    key = getkey(fn)
+    # Add a method expression unless this contains a _ default
+    val == :_ || addmethod!(func_exps, name, typ, key, val)
+end
 
 function addmethod!(func_exps, name, typ, key, value)
     func = esc(:(function $name(::Type{<:$typ}, ::Type{Val{$(QuoteNode(key))}}) $value end))
     push!(func_exps, func)
 end
+
+getkey(ex::Expr) = begin
+    key = firsthead(y -> y.args[1], ex, :(::))
+    if key == nothing 
+        key = firsthead(y -> y.args[1], ex, :(=))
+    end
+    if key == nothing 
+        key = firsthead(y -> y.args[2], ex, :call)
+    end
+    key
+end
+getkey(ex::Symbol) = ex
 
 chained_macros(ex) = chained_macros!(Symbol[], ex)
 
