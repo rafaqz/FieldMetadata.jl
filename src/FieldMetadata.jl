@@ -93,6 +93,7 @@ function add_field_funcs(ex, name; update=false)
     firsthead(ex, :block) do block
         for (i, line) in enumerate(block.args)
             :head in fieldnames(typeof(line)) || continue
+            println("line: ", line)
             if line.head == :(=)
                 call = line.args[2]
                 call.args[1] == :(|) || continue
@@ -177,13 +178,14 @@ namify(x::Expr) = namify(x.args[1])
 
 
 
-# FieldMetadata placeholders
+# FieldMetadata api
 @metadata default nothing
 @metadata units nothing
 @metadata prior nothing
 @metadata description ""
-@metadata limits (0.0, 1.0)
+@metadata limits (1e-7, 1.0) # just above zero so log transform is possible 
 @metadata label ""
+@metadata logscaled false
 @metadata flattenable true
 @metadata plottable true
 
