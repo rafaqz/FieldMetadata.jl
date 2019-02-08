@@ -93,7 +93,6 @@ function add_field_funcs(ex, name; update=false)
     firsthead(ex, :block) do block
         for (i, line) in enumerate(block.args)
             :head in fieldnames(typeof(line)) || continue
-            println("line: ", line)
             if line.head == :(=)
                 call = line.args[2]
                 call.args[1] == :(|) || continue
