@@ -72,7 +72,7 @@ macro chain(name, ex)
         macro $(esc(name))(ex)
             macros = $macros
             for mac in reverse(macros)
-                ex = Expr(:macrocall, mac, LineNumberNode(74, "FieldMetadata.jl"), ex)
+                ex = Expr(:macrocall, mac, LineNumberNode(75, "FieldMetadata.jl"), ex)
             end
             esc(ex)
         end
@@ -179,7 +179,7 @@ namify(x::Expr) = namify(x.args[1])
 
 # FieldMetadata api
 @metadata default nothing
-@metadata units nothing
+@metadata units 1
 @metadata prior nothing
 @metadata description ""
 @metadata limits (1e-7, 1.0) # just above zero so log transform is possible 
@@ -187,6 +187,7 @@ namify(x::Expr) = namify(x.args[1])
 @metadata logscaled false
 @metadata flattenable true
 @metadata plottable true
+@metadata selectable Nothing
 
 # Set the default label to be the field name
 label(x::Type, ::Type{Val{F}}) where F = F
