@@ -1,22 +1,23 @@
-using Revise,
-      FieldMetadata,
+using FieldMetadata,
       Parameters,
       Test,
       Markdown
 
 abstract type AbstractTest end
+
+import FieldMetadata: @description, @redescription, description
+
 @metadata paramrange [0, 1]
-@metadata description "default"
 
 @description mutable struct Described{P}
-   a::Int | "an Int"  
+   a::Int | "an Int"
    b      | "an untyped field"
    c::P   | "a parametric field"
    "An inner constructor should work, even with a docstring"
    Described(a, b, c) = begin
        new{typeof(c)}(a, b, c)
    end
-   function Described(a, b) 
+   function Described(a, b)
        new{Nothing}(a, b, nothing)
    end
 end
@@ -24,18 +25,18 @@ end
 d = Described(1, 1.0, nothing)
 @test typeof(d) == typeof(Described(1, 1.0))
 
-@test description(d, :a) == "an Int"  
-@test description(Described, Val{:a}) == "an Int"  
-@test description(Described, :a) == "an Int"  
-@test description(d, Val{:a}) == "an Int"  
-@test description(typeof(d), :b) == "an untyped field"  
-@test description(typeof(d), :c) == "a parametric field"  
+@test description(d, :a) == "an Int"
+@test description(Described, Val{:a}) == "an Int"
+@test description(Described, :a) == "an Int"
+@test description(d, Val{:a}) == "an Int"
+@test description(typeof(d), :b) == "an untyped field"
+@test description(typeof(d), :c) == "a parametric field"
 @test description(d) == ("an Int", "an untyped field", "a parametric field")
 
-@test description(d, :d) == "default"  
-@test description(d, Val{:d}) == "default"  
-@test description(Described, Val{:d}) == "default"  
-@test description(Described, :d) == "default"  
+@test description(d, :d) == ""
+@test description(d, Val{:d}) == ""
+@test description(Described, Val{:d}) == ""
+@test description(Described, :d) == ""
 
 @inferred description(d, :a)
 @inferred description(Described, Val{:a})
@@ -52,7 +53,7 @@ ex = :(@some @arbitrary @macros struct TestMacros{T}
         a::T | u"1"
         b::T | u"2"
     end)
-@test FieldMetadata.chained_macros(ex) == [Symbol("@some"), Symbol("@arbitrary"), Symbol("@macros")] 
+@test FieldMetadata.chained_macros(ex) == [Symbol("@some"), Symbol("@arbitrary"), Symbol("@macros")]
 
 # range array
 @paramrange struct WithRange <: AbstractTest
@@ -73,8 +74,8 @@ w = WithRange(2,5)
 end
 
 c = Combined(3,5)
-@test description(typeof(c), :a) == "an Int with a range and a description"  
-@test description(c, :b) == "a Float with a range and a description"  
+@test description(typeof(c), :a) == "an Int with a range and a description"
+@test description(c, :b) == "a Float with a range and a description"
 @test paramrange(typeof(c), :a) == [1, 4]
 @test paramrange(c, :b) == [0, 1]
 description(c, Val{:a})
@@ -115,8 +116,8 @@ end
 
 @test paramrange(d, :a) == [99,100]
 @test paramrange(d, :b) == [-3,-4]
-@test description(d, :a) == "a new Int description"  
-@test description(d, :b) == "a new Float64 description"  
+@test description(d, :a) == "a new Int description"
+@test description(d, :b) == "a new Float64 description"
 @inferred description(d, :a)
 @inferred description(d, :b)
 
@@ -144,7 +145,7 @@ else
 end
 
 
-# chaining macros 
+# chaining macros
 
 @chain columns @reparamrange @redescription
 
@@ -153,3 +154,4 @@ end
     b::T | "a new Float64 description" | [-3,-4]
 end
 
+@test description(Described) == ("a new Int description", "a new Float64 description", "a parametric field")
