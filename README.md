@@ -83,8 +83,24 @@ julia> describe(d)
 
 # Metadata placeholders
 
-FieldMetadata provides an api of some simple metadata tags to be used accross
-packages: `default`, `units`, `prior`, `description` and `limits`. To use them, call:
+FieldMetadata provides an api of some simple metadata tags to be used across
+packages: 
+
+| Metadata    | Default     |
+| ----------- | ----------- |
+| default     | : nothing   |
+| units       | 1           |
+| prior       | nothing     |
+| description | ""          |
+| limits      | (1e-7, 1.0) |
+| label       | ""          |
+| logscaled   | false       |
+| flattenable | true        |
+| plottable   | true        |
+| selectable  | Nothing     |
+
+To use them, call:
+
 ```julia
 import FieldMetadata: @prior, @reprior, prior
 ```
