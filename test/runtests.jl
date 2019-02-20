@@ -1,7 +1,4 @@
-using FieldMetadata,
-      Parameters,
-      Test,
-      Markdown
+using FieldMetadata, Parameters, Test, Markdown, REPL
 
 abstract type AbstractTest end
 
@@ -133,16 +130,9 @@ end
 
 @test paramrange(Documented) == ([1,2], [3,4])
 
-if VERSION<v"0.7-"
-    @test "The Docs\n" == Markdown.plain(Base.Docs.doc(Documented))
-    @test "Foo\n" == Markdown.plain(Base.Docs.fielddoc(Documented, :a))
-    @test "Bar\n" == Markdown.plain(Base.Docs.fielddoc(Documented, :b))
-else
-    @eval using REPL
-    @test "The Docs\n" == Markdown.plain(REPL.doc(Documented))
-    @test "Foo\n" == Markdown.plain(REPL.fielddoc(Documented, :a))
-    @test "Bar\n" == Markdown.plain(REPL.fielddoc(Documented, :b))
-end
+@test "The Docs\n" == Markdown.plain(REPL.doc(Documented))
+@test "Foo\n" == Markdown.plain(REPL.fielddoc(Documented, :a))
+@test "Bar\n" == Markdown.plain(REPL.fielddoc(Documented, :b))
 
 
 # chaining macros
