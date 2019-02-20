@@ -2,3 +2,11 @@ name = "FieldMetadata"
 uuid = "bf96fef3-21d2-5d20-8afa-0e7d4c32a885"
 authors = ["Rafael Schouten <rafaelschouten@gmail.com>"]
 version = "0.0.3"
+
+[extras]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["BenchmarkTools", "Unitful", "Test"]
