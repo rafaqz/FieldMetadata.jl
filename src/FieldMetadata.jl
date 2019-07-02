@@ -183,6 +183,7 @@ namify(x::Expr) = namify(x.args[1])
 @metadata prior nothing
 @metadata description ""
 @metadata limits (1e-7, 1.0) # just above zero so log transform is possible 
+@metadata bounds (1e-7, 1.0) # just above zero so log transform is possible 
 @metadata label ""
 @metadata logscaled false
 @metadata flattenable true
