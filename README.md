@@ -7,7 +7,7 @@
 This package lets you define metadata about fields in a struct, like tags
 in Go. It uses a similar syntax to Parameters.jl, with a `|` bar instead of `=`.
 You can use it as a minimalist replacement for Parameters.jl with the aid of
-[Defaults.jl](https://github.com/rafaqz/Defaults.jl).
+[FieldDefaults.jl](https://github.com/rafaqz/FieldDefaults.jl).
 
 FieldMetadata on nested structs can be flattened into a vector or tuple very efficiently with [Flatten.jl](https://github.com/rafaqz/Flatten.jl), where they are also used to 
 exclude fields from flattening.
