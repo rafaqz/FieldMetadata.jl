@@ -1,7 +1,6 @@
 # FieldMetadata
 
 [![Build Status](https://travis-ci.org/rafaqz/FieldMetadata.jl.svg?branch=master)](https://travis-ci.org/rafaqz/FieldMetadata.jl)
-[![Coverage Status](https://coveralls.io/repos/rafaqz/FieldMetadata.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/rafaqz/FieldMetadata.jl?branch=master)
 [![codecov.io](http://codecov.io/github/rafaqz/FieldMetadata.jl/coverage.svg?branch=master)](http://codecov.io/github/rafaqz/FieldMetadata.jl?branch=master)
 
 This package lets you define metadata about fields in a struct, like tags
