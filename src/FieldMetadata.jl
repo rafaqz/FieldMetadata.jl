@@ -28,14 +28,19 @@ macro metadata(name, default)
     rename = esc(Meta.parse("re$name"))
     name = esc(name)
     return quote
-        macro $name(ex)
+        macro $name(expr)
             name = $symname
-            return add_field_funcs(ex, name)
+            return funcs_from_struct(expr, name)
         end
 
-        macro $rename(ex)
+        macro $name(typ, expr)
             name = $symname
-            return add_field_funcs(ex, name; update=true)
+            return funcs_from_block(typ, expr, name)
+        end
+
+        macro $rename(expr)
+            name = $symname
+            return funcs_from_struct(expr, name; update=true)
         end
 
         # Single field methods
@@ -82,59 +87,101 @@ end
 Base.@pure fieldname_vals(::Type{X}) where X = ([Val{fn} for fn in fieldnames(X)]...,)
 
 
-function add_field_funcs(ex, name; update=false)
-    macros = chained_macros(ex)
+function funcs_from_struct(expr::Expr, name::Symbol; update=false)
+    macros = chained_macros(expr)
+    typ = firsthead(x -> namify(x.args[2]), expr, :struct)
+    # If there is no struct this is a begin block
+    # with chained macros
+    if typ === nothing 
+        if length(macros) > 0
+            findexpr = expr
+            for i in 1:length(macros) - 1
+                findexpr = findexpr.args[3]
+            end
+            typ = findexpr.args[3]
+        else
+            error("incorrect arguments for @$name")
+        end
+    else
+    end
+    func_exprs = Expr[]
+    firsthead(expr, :block) do block
+        parseblock!(block, func_exprs, name, typ)
+    end
+    if length(macros) == 0
+        if update 
+            Expr(:block, func_exprs...)
+        else
+            Expr(:block, :(Base.@__doc__ $(esc(expr))), func_exprs...)
+        end
+    else
+        Expr(:block, esc(expr), func_exprs...)
+    end
+end
 
-    typ = firsthead(x -> namify(x.args[2]), ex, :struct)
-    func_exps = Expr[]
+function funcs_from_block(objtyp::Union{Symbol,Expr}, expr::Expr, name::Symbol)
+    macros = chained_macros(objtyp)
+    typ = firsthead(x -> namify(x.args[2]), expr, :)
+    func_exprs = Expr[]
+    firsthead(expr, :block) do block
+        parseblock!(block, func_exprs, name, objtyp)
+    end
+    if length(macros) == 0
+        Expr(:block, func_exprs...)
+    else
+        Expr(:block, esc(typ), esc(ex), func_exprs...)
+    end
+end
 
-    # Parse the block of lines inside the struct.
-    # Function expressions are built for each field, and metadata removed.
-    firsthead(ex, :block) do block
-        for (i, line) in enumerate(block.args)
-            :head in fieldnames(typeof(line)) || continue
-            if line.head == :(=)
-                call = line.args[2]
-                call.args[1] == :(|) || continue
-                # The fieldname is the first arg
-                fn = line.args[1]
-                addmethod_unlessdefault!(func_exps, name, typ, fn, call)
-                # Replace the rest of the line after the = call
-                line.args[2] = call.args[2]
-            elseif line.head == :call || line.args[1] == :(|)
-                # The fieldname is the second arg
-                fn = line.args[2]
-                if :head in fieldnames(typeof(fn))
-                    addmethod_unlessdefault!(func_exps, name, typ, fn, line)
-                    # Replace the line with the field
-                    line.head = fn.head
-                    line.args = fn.args
-                else
-                    addmethod_unlessdefault!(func_exps, name, typ, fn, line)
-                    # Replace the line in the parent block
-                    block.args[i] = line.args[2]
-                end
+# Parse the block: and Function expressions are built for each line, 
+# and one layer of metadata is removed. Both arguments are modified.  
+function parseblock!(block::Expr, exprs::Vector, name::Symbol, typ::Union{Symbol,Expr})
+    for (i, line) in enumerate(block.args)
+        :head in fieldnames(typeof(line)) || continue
+        # Allow Parameters.jl to coexist
+        if line.head == :(=)
+            call = line.args[2]
+            call.args[1] == :(|) || continue
+            # The fieldname is the first arg
+            fn = line.args[1]
+            maybeaddmethod!(exprs, name, typ, fn, call)
+            # Replace the rest of the line after the = call
+            line.args[2] = call.args[2]
+        elseif line.head == :call || line.args[1] == :(|)
+            fn = line.args[2]
+            if fn isa Expr
+                processline(block, line, name, typ)
+            elseif fn isa Symbol
+                maybeaddmethod!(exprs, name, typ, fn, line)
+                # Replace the line in the parent block
+                block.args[i] = line.args[2]
             end
         end
     end
-    if update && length(macros) == 0
-        Expr(:block, func_exps...)
-    else
-        Expr(:block, :(Base.@__doc__ $(esc(ex))), func_exps...)
-    end
 end
 
-function addmethod_unlessdefault!(func_exps, name, typ, fn, ex)
+function processline!(block, line, name, typ, i) 
+        if fn.head == :call 
+            processline!(block, fn, name, typ, i) 
+        else
+            maybeaddmethod!(exprs, name, typ, fn, line)
+            # Replace the line with the field
+            line.head = fn.head
+            line.args = fn.args
+        end
+end
+
+function maybeaddmethod!(exprs, name, typ, fn, ex)
     # Get just the fieldname symbol from the full fieldname
     val = ex.args[3]
     key = getkey(fn)
-    # Add a method expression unless this contains a _ default
-    val == :_ || addmethod!(func_exps, name, typ, key, val)
+    # Add a method expression unless this contains a `_` default
+    val == :_ || addmethod!(exprs, name, typ, key, val)
 end
 
-function addmethod!(func_exps, name, typ, key, value)
+function addmethod!(exprs, name, typ, key, value)
     func = esc(:(function $name(::Type{<:$typ}, ::Type{Val{$(QuoteNode(key))}}) $value end))
-    push!(func_exps, func)
+    push!(exprs, func)
 end
 
 getkey(ex::Expr) = begin
@@ -150,7 +197,6 @@ end
 getkey(ex::Symbol) = ex
 
 chained_macros(ex) = chained_macros!(Symbol[], ex)
-
 chained_macros!(macros, ex::Expr) = begin
     if ex.head == :macrocall
         push!(macros, ex.args[1])
@@ -158,6 +204,7 @@ chained_macros!(macros, ex::Expr) = begin
     end
     macros
 end
+chained_macros!(macros, ex::Symbol) = Symbol[]
 
 firsthead(f, ex::Expr, sym) =
     if ex.head == sym

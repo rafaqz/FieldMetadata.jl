@@ -105,11 +105,14 @@ m = MissingKeyword(b = 99)
 @test m.b == 99
 @test paramrange(m) == ([0, 100], [2, 9])
 
+@metadata default nothing
+
 # update description
 @reparamrange @redescription mutable struct Described{T}
     a::T | "a new Int description"     | [99,100]
     b    | "a new Float64 description" | [-3,-4]
 end
+
 
 @test paramrange(d, :a) == [99,100]
 @test paramrange(d, :b) == [-3,-4]
@@ -118,6 +121,15 @@ end
 @inferred description(d, :a)
 @inferred description(d, :b)
 
+@paramrange @description @default Described begin 
+    a | 1 | "a description updated in a begin block" | [22,33]
+    b | 2 | "another updated description"            | [-8,-9]
+end
+
+@test paramrange(d, :a) == [22,33]
+@test paramrange(d, :b) == [-8,-9]
+@test description(d, :a) == "a description updated in a begin block"
+@test description(d, :b) == "another updated description"
 
 # docstrings
 "The Docs"
