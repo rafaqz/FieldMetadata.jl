@@ -61,15 +61,18 @@ line in the struct. This makes sense when you consider that a macro like
 @with_kw from Parameters.jl has to be the last macro, but the first item in the
 row after the field type.
 
-You can also update or add fields on a type that is already declared using the
-same syntax, by prepending `re` to the start of the macro, like `@redescribe`.
-You don't need to include all fields or their types.
+You can also update or add fields on a type that is already declared using a
+`begin` block syntax. You don't need to include all fields or their types.
+
+This is a change from the previous syntax in 0.1, where `@re` was prepended
+to update using the same struct syntax. There are a number of benefits to this,
+firstly that we can use typeof(x) instead of the type name.
 
 ```julia
 julia> describe(d)                                                                                                     
 ("an Int with a description", "a Float with a description")  
 
-@redescribe struct Described
+@describe Described begin
    b | "a much better description"
 end
 

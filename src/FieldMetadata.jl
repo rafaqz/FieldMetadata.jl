@@ -25,22 +25,16 @@ def_range(model)
 macro metadata(name, default)
     symname = QuoteNode(name)
     default = esc(default)
-    rename = esc(Meta.parse("re$name"))
     name = esc(name)
     return quote
         macro $name(expr)
             name = $symname
-            return funcs_from_struct(expr, name)
+            return funcs_from_unknown(expr, name)
         end
 
         macro $name(typ, expr)
             name = $symname
             return funcs_from_block(typ, expr, name)
-        end
-
-        macro $rename(expr)
-            name = $symname
-            return funcs_from_struct(expr, name; update=true)
         end
 
         # Single field methods
@@ -72,12 +66,17 @@ end
 ```
 """
 macro chain(name, ex)
-    macros = chained_macros(ex)
+    macros = reverse(chained_macros(ex))
     return quote
         macro $(esc(name))(ex)
-            macros = $macros
-            for mac in reverse(macros)
-                ex = Expr(:macrocall, mac, LineNumberNode(75, "FieldMetadata.jl"), ex)
+            for mac in $macros
+                ex = Expr(:macrocall, mac, LineNumberNode(80, "FieldMetadata.jl"), ex)
+            end
+            esc(ex)
+        end
+        macro $(esc(name))(typ, ex)
+            for mac in $macros
+                ex = Expr(:macrocall, mac, LineNumberNode(87, "FieldMetadata.jl"), typ, ex)
             end
             esc(ex)
         end
@@ -86,25 +85,24 @@ end
 
 Base.@pure fieldname_vals(::Type{X}) where X = ([Val{fn} for fn in fieldnames(X)]...,)
 
-
-function funcs_from_struct(expr::Expr, name::Symbol; update=false)
+function funcs_from_unknown(expr::Expr, name::Symbol; update=false)
     macros = chained_macros(expr)
     typ = firsthead(x -> namify(x.args[2]), expr, :struct)
-    # If there is no struct this is a begin block
-    # with chained macros
+    # If there is no struct this is a begin block with chained macros
     if typ === nothing 
-        if length(macros) > 0
+        typ = if length(macros) > 0
             findexpr = expr
             for i in 1:length(macros) - 1
                 findexpr = findexpr.args[3]
             end
-            typ = findexpr.args[3]
+            findexpr.args[3]
         else
             error("incorrect arguments for @$name")
         end
-    else
+        update = true
     end
     func_exprs = Expr[]
+    # Getting the block is the same whatever the format
     firsthead(expr, :block) do block
         parseblock!(block, func_exprs, name, typ)
     end
@@ -121,7 +119,9 @@ end
 
 function funcs_from_block(objtyp::Union{Symbol,Expr}, expr::Expr, name::Symbol)
     macros = chained_macros(objtyp)
-    typ = firsthead(x -> namify(x.args[2]), expr, :)
+    # if !(objtyp isa Symbol) && objtyp.head == :call
+        # ojbtyp = eval(typ)
+    # end
     func_exprs = Expr[]
     firsthead(expr, :block) do block
         parseblock!(block, func_exprs, name, objtyp)
@@ -135,66 +135,76 @@ end
 
 # Parse the block: and Function expressions are built for each line, 
 # and one layer of metadata is removed. Both arguments are modified.  
-function parseblock!(block::Expr, exprs::Vector, name::Symbol, typ::Union{Symbol,Expr})
+function parseblock!(block::Expr, exprs::Vector, method::Symbol, typ::Union{Symbol,Expr})
     for (i, line) in enumerate(block.args)
         :head in fieldnames(typeof(line)) || continue
         # Allow Parameters.jl to coexist
         if line.head == :(=)
-            call = line.args[2]
-            call.args[1] == :(|) || continue
             # The fieldname is the first arg
             fn = line.args[1]
-            maybeaddmethod!(exprs, name, typ, fn, call)
-            # Replace the rest of the line after the = call
-            line.args[2] = call.args[2]
-        elseif line.head == :call || line.args[1] == :(|)
-            fn = line.args[2]
-            if fn isa Expr
-                processline(block, line, name, typ)
-            elseif fn isa Symbol
-                maybeaddmethod!(exprs, name, typ, fn, line)
-                # Replace the line in the parent block
-                block.args[i] = line.args[2]
+            # Make sure this is a field
+            if fn isa Symbol || fn.head == :(::)
+                key = getkey(fn)
+                # Then make sure its a call to |
+                expr = line.args[2]
+                if expr.head == :call && expr.args[1] == :(|)
+                    process_equals_line!(exprs, line, expr, key, method, typ)
+                end
             end
+        elseif line.head == :call && line.args[1] == :(|)
+            process_bar_line!(exprs, block.args, method, typ, i)
         end
     end
 end
 
-function processline!(block, line, name, typ, i) 
-        if fn.head == :call 
-            processline!(block, fn, name, typ, i) 
-        else
-            maybeaddmethod!(exprs, name, typ, fn, line)
+function process_equals_line!(exprs, parent, expr, key, method, typ)
+    child = expr.args[2]
+    if child isa Expr && child.head == :call && child.args[1] == :(|)
+        process_equals_line!(exprs, expr, child, key, method, typ)
+    else
+        val = expr.args[3]
+        val == :_ || addmethod!(exprs, method, typ, key, val)
+        # Replace the rest of the line after the = call
+        parent.args[2] = child
+    end
+end
+
+# exprs, line and block may all be mutated
+function process_bar_line!(exprs, args, method, typ, i)
+    expr = args[i]
+    if expr.head == :call && expr.args[1] == :(|) 
+        child = expr.args[2]
+        if child isa Symbol 
+            key = child
+            val = expr.args[3]
+            val == :_ || addmethod!(exprs, method, typ, key, val)
+            args[i] = key
+        elseif child.head != :call
             # Replace the line with the field
-            line.head = fn.head
-            line.args = fn.args
+            key = getkey(child)
+            val = expr.args[3]
+            val == :_ || addmethod!(exprs, method, typ, key, val)
+            expr.head = child.head
+            expr.args = child.args
+        else
+            process_bar_line!(exprs, expr.args, method, typ, 2) 
         end
+    else
+        error("expression is not a | : `$expr`")
+    end
 end
 
-function maybeaddmethod!(exprs, name, typ, fn, ex)
-    # Get just the fieldname symbol from the full fieldname
-    val = ex.args[3]
-    key = getkey(fn)
-    # Add a method expression unless this contains a `_` default
-    val == :_ || addmethod!(exprs, name, typ, key, val)
-end
 
-function addmethod!(exprs, name, typ, key, value)
-    func = esc(:(function $name(::Type{<:$typ}, ::Type{Val{$(QuoteNode(key))}}) $value end))
+function addmethod!(exprs, method, typ, key, value)
+    func = esc(:(function $method(::Type{<:$typ}, ::Type{Val{$(QuoteNode(key))}}) $value end))
     push!(exprs, func)
 end
 
-getkey(ex::Expr) = begin
-    key = firsthead(y -> y.args[1], ex, :(::))
-    if key == nothing 
-        key = firsthead(y -> y.args[1], ex, :(=))
-    end
-    if key == nothing 
-        key = firsthead(y -> y.args[2], ex, :call)
-    end
-    key
-end
+# Field could be just the name `a`
 getkey(ex::Symbol) = ex
+# Or the name and type `a::T`, or somethng else
+getkey(ex::Expr) =
+    firsthead(y -> y.args[1], ex, :(::))
 
 chained_macros(ex) = chained_macros!(Symbol[], ex)
 chained_macros!(macros, ex::Expr) = begin
