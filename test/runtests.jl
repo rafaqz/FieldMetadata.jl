@@ -2,7 +2,7 @@ using FieldMetadata, Parameters, Test, Markdown, REPL
 
 abstract type AbstractTest end
 
-import FieldMetadata: @description, @redescription, description
+import FieldMetadata: @description, description
 
 @metadata paramrange [0, 1]
 
@@ -18,6 +18,9 @@ import FieldMetadata: @description, @redescription, description
        new{Nothing}(a, b, nothing)
    end
 end
+
+@test length(methods(Described).ms) == 2
+@test length(methods(description).ms) == 12
 
 d = Described(1, 1.0, nothing)
 @test typeof(d) == typeof(Described(1, 1.0))
@@ -65,9 +68,9 @@ w = WithRange(2,5)
 
 
 # combinations of metadata
-@description @paramrange struct Combined{T} <: AbstractTest
-    a::T | [1, 4]  | "an Int with a range and a description"
-    b::T | _       | "a Float with a range and a description"
+@paramrange @description struct Combined{T} <: AbstractTest
+    a::T | [1, 4] | "an Int with a range and a description"
+    b::T | _      | "a Float with a range and a description"
 end
 
 c = Combined(3,5)
@@ -79,7 +82,7 @@ description(c, Val{:a})
 
 
 # with Parameters.jl keywords
-@description @paramrange @with_kw struct Keyword{T} <: AbstractTest
+@paramrange @description @with_kw struct Keyword{T} <: AbstractTest
     a::T = 3 | [0, 100] | "an Int with a range and a description"
     b::T = 5 | [2, 9]   | "a Float with a range and a description"
 end
@@ -92,7 +95,7 @@ k = Keyword()
 
 
 # with missing keywords
-@description @paramrange @with_kw struct MissingKeyword{T} <: AbstractTest
+@paramrange @description @with_kw struct MissingKeyword{T} <: AbstractTest
     a    = 3 | [0, 100] | "an Int with a range and a description"
     b::T     | [2, 9]   | "a Float with a range and a description"
     MissingKeyword{T}(a::T, b::T) where T = new{T}(a, b)
@@ -105,19 +108,40 @@ m = MissingKeyword(b = 99)
 @test m.b == 99
 @test paramrange(m) == ([0, 100], [2, 9])
 
-# update description
-@reparamrange @redescription mutable struct Described{T}
-    a::T | "a new Int description"     | [99,100]
-    b    | "a new Float64 description" | [-3,-4]
+@metadata default nothing
+
+@default @description @paramrange Described begin 
+    a | 1 | "a description updated in a begin block" | [22,33]
+    b | 2 | "another updated description"            | [-8,-9]
 end
 
-@test paramrange(d, :a) == [99,100]
-@test paramrange(d, :b) == [-3,-4]
-@test description(d, :a) == "a new Int description"
-@test description(d, :b) == "a new Float64 description"
-@inferred description(d, :a)
-@inferred description(d, :b)
+@test paramrange(d, :a) == [22,33]
+@test paramrange(d, :b) == [-8,-9]
+@test description(d, :a) == "a description updated in a begin block"
+@test description(d, :b) == "another updated description"
 
+# Now eval in all the values
+def_a = 3
+def_b = 4
+desc_a = "interpolated string a"
+desc_b = "interpolated string b"
+vec_a = [0, 0]
+vec_b = [1, 1]
+
+@eval   @default   @description   @paramrange :($(typeof(d))) begin 
+    a | $def_a   | $desc_a      | $vec_a
+    b | $def_b   | $desc_b      | $vec_b
+end
+
+@test default(d, :a) == 3
+@test default(d, :b) == 4
+@test paramrange(d, :a) == [0, 0]
+@test paramrange(d, :b) == [1, 1]
+@test description(d, :a) == "interpolated string a"
+@test description(d, :b) == "interpolated string b"
+
+def_a = 44
+@test default(d, :a) == 3
 
 # docstrings
 "The Docs"
@@ -137,9 +161,9 @@ end
 
 # chaining macros
 
-@chain columns @reparamrange @redescription
+@chain columns @description @paramrange 
 
-@columns mutable struct Described{T}
+@columns Described begin
     a::T | "a new Int description"     | [99,100]
     b::T | "a new Float64 description" | [-3,-4]
 end

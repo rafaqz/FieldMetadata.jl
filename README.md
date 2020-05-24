@@ -11,9 +11,14 @@ You can use it as a minimalist replacement for Parameters.jl with the aid of
 FieldMetadata on nested structs can be flattened into a vector or tuple very efficiently with [Flatten.jl](https://github.com/rafaqz/Flatten.jl), where they are also used to 
 exclude fields from flattening.
 
+__NOTIFICATION:__ There have been major syntax changes for v0.2. Read the
+examples below for the new syntax.
+
+
 This example that adds string description metadata to fields in a struct:
 
 ```julia
+using FieldMetadata
 @metadata describe ""
 
 @describe mutable struct Described
@@ -23,13 +28,13 @@ end
 
 d = Described(1, 1.0)
 
-julia>describe(d, :a) 
+julia> describe(d, :a) 
 "an Int with a description"  
 
-julia>describe(d, :b) 
+julia> describe(d, :b) 
 "a Float with a description"  
 
-julia>describe(d, :c) 
+julia> describe(d, :c) 
 ""  
 ```
 
@@ -40,7 +45,7 @@ using Parameters
 @metadata describe ""
 @metadata limits (0, 1)
 
-@describe @limits @with_kw struct WithKeyword{T}
+@limits @describe @with_kw struct WithKeyword{T}
     a::T = 3 | (0, 100) | "a field with a range, description and default"
     b::T = 5 | (2, 9)   | "another field with a range, description and default"
 end
@@ -50,26 +55,29 @@ k = WithKeyword()
 julia> describe(k, :b) 
 "another field with a range, description and default"
 
-julia> paramrange(k, :a) 
+julia> limits(k, :a) 
 [0, 100]
 ""  
 ```
 
-You can chain as many metadata macros together as you want. Just remember that 
-the data for the first `@metadata` macro goes at the end on the
-line in the struct. This makes sense when you consider that a macro like
-@with_kw from Parameters.jl has to be the last macro, but the first item in the
-row after the field type.
+You can chain as many metadata macros together as you want. As of
+FieldMetadata.jl v0.2, macros are written in the same order as the metadata
+columns, as opposed to the opposite order which was the syntax in v0.1
 
-You can also update or add fields on a type that is already declared using the
-same syntax, by prepending `re` to the start of the macro, like `@redescribe`.
-You don't need to include all fields or their types.
+However, @with_kw from Parameters.jl must be the last macro and the first field, 
+if it is used.
+
+You can also update or add fields on a type that is already declared using a
+`begin` block syntax. You don't need to include all fields or their types.
+
+This is another change from the syntax in v0.1, where `@re` was prepended
+to update using the same struct syntax.
 
 ```julia
 julia> describe(d)                                                                                                     
 ("an Int with a description", "a Float with a description")  
 
-@redescribe struct Described
+@describe Described begin
    b | "a much better description"
 end
 
@@ -77,6 +85,18 @@ julia> d = Described(1, 1.0)
 
 julia> describe(d)
 ("an Int with a description", "a much better description")
+```
+
+We can use `typeof(x)` and a little meta-programming instead of the type name, 
+which can be useful for anonymous function parameters:
+
+```
+@describe :($(typeof(d))) begin
+   a | "a description without using the type"
+end
+
+julia> describe(d)
+("a description without using the type", "a much better desc ription")
 ```
 
 
@@ -101,10 +121,12 @@ packages:
 To use them, call:
 
 ```julia
-import FieldMetadata: @prior, @reprior, prior
+import FieldMetadata: @prior, prior
 ```
 
 You _must_ `import` at least the function to use these placeholders, `using` is
-not enough as you are effectively adding methods for you own types. Calling
-`@reprior` or similar on someone elses struct is type piracy and shouldn't be
-done in a published package, but can be useful in scripts.
+not enough as you are effectively adding methods for you own types. 
+
+Calling `@prior` or similar on someone else's struct may be type piracy and
+shouldn't be done in a published package unless the macro is also defined there.
+However, it can be useful in scripts.
