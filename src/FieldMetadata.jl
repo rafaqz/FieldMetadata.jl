@@ -238,14 +238,13 @@ namify(x::Expr) = namify(x.args[1])
 @metadata default nothing
 @metadata units 1
 @metadata prior nothing
-@metadata description ""
-@metadata limits (1e-7, 1.0) # just above zero so log transform is possible 
-@metadata bounds (1e-7, 1.0) # just above zero so log transform is possible 
 @metadata label ""
+@metadata description ""
+@metadata limits (0.0, 1.0)
+@metadata bounds (0.0, 1.0)
 @metadata logscaled false
 @metadata flattenable true
 @metadata plottable true
-@metadata selectable Nothing
 
 # Set the default label to be the field name
 label(x::Type, ::Type{Val{F}}) where F = F
