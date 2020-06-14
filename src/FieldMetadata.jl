@@ -10,12 +10,18 @@ end
 Base.showerror(io::IO, e::MetadataError) = print(io, e.var)
 
 """
+    @metadata name default [type=Any]
+
 Generate a macro that constructs methods of the same name.
 These methods return the metadata information provided for each
 field of the struct.
 
+If no method is definjed for a type or field, the default value 
+is used. If a type is passed to the macro, the type of metadata will be checked 
+when it is loaded with the method. The default type is `Any`.
+
 ```julia
-@metadata def_range (0, 0)
+@metadata def_range (0, 0) Tuple
 @def_range struct Model
     a::Int | (1, 4)
     b::Int | (4, 9)
