@@ -38,14 +38,15 @@ julia> describe(d, :c)
 ""  
 ```
 
-A more complex example :
+A more complex example. Here we type-check metadata for `describe` to be 
+`String` and `bounds` to be `Tuple`, by passing an extra argument to the macro:
 
 ```julia
 using Parameters
-@metadata describe ""
-@metadata limits (0, 1)
+@metadata describe "" String
+@metadata bounds (0, 1) Tuple
 
-@limits @describe @with_kw struct WithKeyword{T}
+@bounds @describe @with_kw struct WithKeyword{T}
     a::T = 3 | (0, 100) | "a field with a range, description and default"
     b::T = 5 | (2, 9)   | "another field with a range, description and default"
 end
@@ -55,8 +56,8 @@ k = WithKeyword()
 julia> describe(k, :b) 
 "another field with a range, description and default"
 
-julia> limits(k, :a) 
-[0, 100]
+julia> bounds(k, :a) 
+(0, 100)
 ""  
 ```
 
@@ -105,18 +106,19 @@ julia> describe(d)
 FieldMetadata provides an api of some simple metadata tags to be used across
 packages: 
 
-| Metadata    | Default     |
-| ----------- | ----------- |
-| default     | : nothing   |
-| units       | 1           |
-| prior       | nothing     |
-| description | ""          |
-| limits      | (1e-7, 1.0) |
-| label       | ""          |
-| logscaled   | false       |
-| flattenable | true        |
-| plottable   | true        |
-| selectable  | Nothing     |
+| Metadata    | Default     | Type           | Use case                                        |
+| ----------- | ----------- | -------------- | ----------------------------------------------- |
+| default     | nothing     | Any            | Default values (see FieldDefaults.jl)           |
+| units       | 1           | Any            | Unitful.jl unit                                 |
+| prior       | nothing     | Any            | Prior probability distributions                 |
+| label       | ""          | AbstractString | Short labels                                    |
+| description | ""          | AbstractString | Complete descriptions                           |
+| bounds      | (0.0, 1.0)  | Tuple          | Upper and lower bounds in optimisers            |
+| limits      | (0.0, 1.0)  | Tuple          | Legacy - use `bounds`                           |
+| logscaled   | false       | Bool           | For log sliders or log plots                    |
+| flattenable | true        | Bool           | For flattening structs with Flatten.jl          |
+| plottable   | true        | Bool           | For finding plottable content in nested structs |
+| selectable  | Nothing     | Bool           | Supertypes to select child constructors from    |
 
 To use them, call:
 

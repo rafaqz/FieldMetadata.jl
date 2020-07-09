@@ -2,9 +2,7 @@ using FieldMetadata, Parameters, Test, Markdown, REPL
 
 abstract type AbstractTest end
 
-import FieldMetadata: @description, description
-
-@metadata paramrange [0, 1]
+import FieldMetadata: @description, description, MetadataError
 
 @description mutable struct Described{P}
    a::Int | "an Int"
@@ -55,6 +53,9 @@ ex = :(@some @arbitrary @macros struct TestMacros{T}
     end)
 @test FieldMetadata.chained_macros(ex) == [Symbol("@some"), Symbol("@arbitrary"), Symbol("@macros")]
 
+
+@metadata paramrange [0, 1] Array
+
 # range array
 @paramrange struct WithRange <: AbstractTest
     a::Int | [1, 4]
@@ -65,7 +66,19 @@ w = WithRange(2,5)
 @test paramrange(w, :a) == [1, 4]
 @test paramrange(w, :b) == [4, 9]
 @test paramrange(w) == ([1, 4], [4, 9])
+@inferred paramrange(w, :a)
 
+
+@paramrange @description struct WrongType <: AbstractTest
+    a::Int | (1, 4) | :test
+    b::Int | "4, 9" | AbstractTest
+end
+
+wt = WrongType(0, 0)
+@test_throws MetadataError paramrange(wt, :a)
+@test_throws MetadataError paramrange(WrongType, :b)
+@test_throws MetadataError description(wt, :a)
+@test_throws MetadataError description(WrongType, :b)
 
 # combinations of metadata
 @paramrange @description struct Combined{T} <: AbstractTest

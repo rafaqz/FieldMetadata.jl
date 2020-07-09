@@ -2,13 +2,26 @@ module FieldMetadata
 
 export @metadata, @chain
 
+
+struct MetadataError <: Exception
+    var::String
+end
+
+Base.showerror(io::IO, e::MetadataError) = print(io, e.var)
+
 """
+    @metadata name default [type=Any]
+
 Generate a macro that constructs methods of the same name.
 These methods return the metadata information provided for each
 field of the struct.
 
+If no method is definjed for a type or field, the default value 
+is used. If a type is passed to the macro, the type of metadata will be checked 
+when it is loaded with the method. The default type is `Any`.
+
 ```julia
-@metadata def_range (0, 0)
+@metadata def_range (0, 0) Tuple
 @def_range struct Model
     a::Int | (1, 4)
     b::Int | (4, 9)
@@ -22,19 +35,20 @@ def_range(model)
 ((1, 4), (4, 9))
 ```
 """
-macro metadata(name, default)
+macro metadata(name, default, checktyp=Any)
     symname = QuoteNode(name)
     default = esc(default)
     name = esc(name)
+    checktyp = esc(checktyp)
     return quote
         macro $name(expr)
             name = $symname
-            return funcs_from_unknown(expr, name)
+            return funcs_from_unknown(expr, name, $checktyp)
         end
 
         macro $name(typ, expr)
             name = $symname
-            return funcs_from_block(typ, expr, name)
+            return funcs_from_block(typ, expr, name, $checktyp)
         end
 
         # Single field methods
@@ -85,7 +99,7 @@ end
 
 Base.@pure fieldname_vals(::Type{X}) where X = ([Val{fn} for fn in fieldnames(X)]...,)
 
-function funcs_from_unknown(expr::Expr, name::Symbol; update=false)
+function funcs_from_unknown(expr::Expr, name::Symbol, checktyp; update=false)
     macros = chained_macros(expr)
     typ = firsthead(x -> namify(x.args[2]), expr, :struct)
     # If there is no struct this is a begin block with chained macros
@@ -104,7 +118,7 @@ function funcs_from_unknown(expr::Expr, name::Symbol; update=false)
     func_exprs = Expr[]
     # Getting the block is the same whatever the format
     firsthead(expr, :block) do block
-        parseblock!(block, func_exprs, name, typ)
+        parseblock!(block, func_exprs, name, typ, checktyp)
     end
     if length(macros) == 0
         if update 
@@ -117,14 +131,14 @@ function funcs_from_unknown(expr::Expr, name::Symbol; update=false)
     end
 end
 
-function funcs_from_block(objtyp::Union{Symbol,Expr}, expr::Expr, name::Symbol)
+function funcs_from_block(objtyp::Union{Symbol,Expr}, expr::Expr, name::Symbol, checktyp)
     macros = chained_macros(objtyp)
     # if !(objtyp isa Symbol) && objtyp.head == :call
         # ojbtyp = eval(typ)
     # end
     func_exprs = Expr[]
     firsthead(expr, :block) do block
-        parseblock!(block, func_exprs, name, objtyp)
+        parseblock!(block, func_exprs, name, objtyp, checktyp)
     end
     if length(macros) == 0
         Expr(:block, func_exprs...)
@@ -135,7 +149,7 @@ end
 
 # Parse the block: and Function expressions are built for each line, 
 # and one layer of metadata is removed. Both arguments are modified.  
-function parseblock!(block::Expr, exprs::Vector, method::Symbol, typ::Union{Symbol,Expr})
+function parseblock!(block::Expr, exprs::Vector, method::Symbol, typ::Union{Symbol,Expr}, checktyp)
     for (i, line) in enumerate(block.args)
         :head in fieldnames(typeof(line)) || continue
         # Allow Parameters.jl to coexist
@@ -148,46 +162,46 @@ function parseblock!(block::Expr, exprs::Vector, method::Symbol, typ::Union{Symb
                 # Then make sure its a call to |
                 expr = line.args[2]
                 if expr.head == :call && expr.args[1] == :(|)
-                    process_equals_line!(exprs, line, expr, key, method, typ)
+                    process_equals_line!(exprs, line, expr, key, method, typ, checktyp)
                 end
             end
         elseif line.head == :call && line.args[1] == :(|)
-            process_bar_line!(exprs, block.args, method, typ, i)
+            process_bar_line!(exprs, block.args, method, typ, checktyp, i)
         end
     end
 end
 
-function process_equals_line!(exprs, parent, expr, key, method, typ)
+function process_equals_line!(exprs, parent, expr, key, method, typ, checktyp)
     child = expr.args[2]
     if child isa Expr && child.head == :call && child.args[1] == :(|)
-        process_equals_line!(exprs, expr, child, key, method, typ)
+        process_equals_line!(exprs, expr, child, key, method, typ, checktyp)
     else
         val = expr.args[3]
-        val == :_ || addmethod!(exprs, method, typ, key, val)
+        val == :_ || addmethod!(exprs, method, typ, checktyp, key, val)
         # Replace the rest of the line after the = call
         parent.args[2] = child
     end
 end
 
 # exprs, line and block may all be mutated
-function process_bar_line!(exprs, args, method, typ, i)
+function process_bar_line!(exprs, args, method, typ, checktyp, i)
     expr = args[i]
     if expr.head == :call && expr.args[1] == :(|) 
         child = expr.args[2]
         if child isa Symbol 
             key = child
             val = expr.args[3]
-            val == :_ || addmethod!(exprs, method, typ, key, val)
+            val == :_ || addmethod!(exprs, method, typ, checktyp, key, val)
             args[i] = key
         elseif child.head != :call
             # Replace the line with the field
             key = getkey(child)
             val = expr.args[3]
-            val == :_ || addmethod!(exprs, method, typ, key, val)
+            val == :_ || addmethod!(exprs, method, typ, checktyp, key, val)
             expr.head = child.head
             expr.args = child.args
         else
-            process_bar_line!(exprs, expr.args, method, typ, 2) 
+            process_bar_line!(exprs, expr.args, method, typ, checktyp, 2) 
         end
     else
         error("expression is not a | : `$expr`")
@@ -195,10 +209,19 @@ function process_bar_line!(exprs, args, method, typ, i)
 end
 
 
-function addmethod!(exprs, method, typ, key, value)
-    func = esc(:(function $method(::Type{<:$typ}, ::Type{Val{$(QuoteNode(key))}}) $value end))
-    push!(exprs, func)
+function addmethod!(exprs, method, typ, checktyp, key, value)
+    func = quote
+        function $method(::Type{<:$typ}, ::Type{Val{$(QuoteNode(key))}}) 
+            value = $value 
+            value isa $checktyp || FieldMetadata.metadata_error($typ, $checktyp, $(QuoteNode(key)), value)
+            value
+        end
+    end
+    push!(exprs, esc(func))
 end
+
+@noinline metadata_error(typ, checktyp, key, value) = 
+    throw(MetadataError("$value of type $(typeof(value)) is not in $checktyp for key $key in $typ"))
 
 # Field could be just the name `a`
 getkey(ex::Symbol) = ex
@@ -238,13 +261,14 @@ namify(x::Expr) = namify(x.args[1])
 @metadata default nothing
 @metadata units 1
 @metadata prior nothing
-@metadata label ""
-@metadata description ""
-@metadata limits (0.0, 1.0)
-@metadata bounds (0.0, 1.0)
-@metadata logscaled false
-@metadata flattenable true
-@metadata plottable true
+@metadata label "" AbstractString 
+@metadata description "" AbstractString 
+@metadata limits (0.0, 1.0) Tuple
+@metadata bounds (0.0, 1.0) Tuple
+@metadata logscaled false Bool
+@metadata flattenable true Bool
+@metadata plottable true Bool
+@metadata selectable Nothing
 
 # Set the default label to be the field name
 label(x::Type, ::Type{Val{F}}) where F = F
