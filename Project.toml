@@ -1,7 +1,7 @@
 name = "FieldMetadata"
 uuid = "bf96fef3-21d2-5d20-8afa-0e7d4c32a885"
 authors = ["Rafael Schouten <rafaelschouten@gmail.com>"]
-version = "0.3.0"
+version = "0.3.1"
 
 [compat]
 julia = "1"

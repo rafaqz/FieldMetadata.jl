@@ -52,18 +52,18 @@ macro metadata(name, default, checktyp=Any)
         end
 
         # Single field methods
-        $name(x, key) = $default
-        $name(x::Type, key::Type) = $default
-        $name(::X, key::Symbol) where X = $name(X, Val{key})
-        $name(::X, key::Type) where X = $name(X, key)
-        $name(::Type{X}, key::Symbol) where X = $name(X, Val{key})
+        @inline $name(x, key) = $default
+        @inline $name(x::Type, key::Type) = $default
+        @inline $name(::X, key::Symbol) where X = $name(X, Val{key})
+        @inline $name(::X, key::Type) where X = $name(X, key)
+        @inline $name(::Type{X}, key::Symbol) where X = $name(X, Val{key})
 
         # All field methods
-        $name(::X) where X = $name(X)
-        $name(x::Type{X}) where X = $name(X, fieldname_vals(X))
-        $name(::Type{X}, keys::Tuple) where X =
+        @inline $name(::X) where X = $name(X)
+        @inline $name(x::Type{X}) where X = $name(X, fieldname_vals(X))
+        @inline $name(::Type{X}, keys::Tuple) where X =
             ($name(X, keys[1]), $name(X, Base.tail(keys))...)
-        $name(::Type{X}, keys::Tuple{}) where X = tuple()
+        @inline $name(::Type{X}, keys::Tuple{}) where X = tuple()
     end
 end
 
@@ -211,7 +211,7 @@ end
 
 function addmethod!(exprs, method, typ, checktyp, key, value)
     func = quote
-        function $method(::Type{<:$typ}, ::Type{Val{$(QuoteNode(key))}}) 
+        @inline function $method(::Type{<:$typ}, ::Type{Val{$(QuoteNode(key))}}) 
             value = $value 
             value isa $checktyp || FieldMetadata.metadata_error($typ, $checktyp, $(QuoteNode(key)), value)
             value
@@ -226,11 +226,10 @@ end
 # Field could be just the name `a`
 getkey(ex::Symbol) = ex
 # Or the name and type `a::T`, or somethng else
-getkey(ex::Expr) =
-    firsthead(y -> y.args[1], ex, :(::))
+getkey(ex::Expr) = firsthead(y -> y.args[1], ex, :(::))
 
 chained_macros(ex) = chained_macros!(Symbol[], ex)
-chained_macros!(macros, ex::Expr) = begin
+function chained_macros!(macros, ex::Expr)
     if ex.head == :macrocall
         push!(macros, ex.args[1])
         length(ex.args) > 2 && chained_macros!(macros, ex.args[3])
@@ -239,7 +238,7 @@ chained_macros!(macros, ex::Expr) = begin
 end
 chained_macros!(macros, ex::Symbol) = Symbol[]
 
-firsthead(f, ex::Expr, sym) =
+function firsthead(f, ex::Expr, sym)
     if ex.head == sym
         out = f(ex)
         return out
@@ -250,6 +249,7 @@ firsthead(f, ex::Expr, sym) =
         end
         return nothing
     end
+end
 firsthead(f, ex, sym) = nothing
 
 namify(x) = x
