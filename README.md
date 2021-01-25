@@ -66,7 +66,17 @@ FieldMetadata.jl v0.2, macros are written in the same order as the metadata
 columns, as opposed to the opposite order which was the syntax in v0.1
 
 However, @with_kw from Parameters.jl must be the last macro and the first field, 
-if it is used.
+if it is used. Additionally, any field with a default value must also have a metadata
+annotation. If you assign a default value but no metadata to any
+field, it will raise a `LoadError` with a message `type XXX has no field head`.
+You can use the default value by adding `_` as an annotation, e.g.
+```julia
+@bounds @with_kw struct DefaultWithKeyword{T}
+    a::T = 0 | _  # omitting the `| _` will cause an errow
+    b::T = 0 | (0, 1)
+end
+```
+
 
 You can also update or add fields on a type that is already declared using a
 `begin` block syntax. You don't need to include all fields or their types.
