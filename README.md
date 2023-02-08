@@ -3,17 +3,15 @@
 [![Build Status](https://travis-ci.org/rafaqz/FieldMetadata.jl.svg?branch=master)](https://travis-ci.org/rafaqz/FieldMetadata.jl)
 [![codecov.io](http://codecov.io/github/rafaqz/FieldMetadata.jl/coverage.svg?branch=master)](http://codecov.io/github/rafaqz/FieldMetadata.jl?branch=master)
 
-
-## Note: there are problems with the strategies used in this package. Development has moved to [ModelParameters.jl](https://github.com/rafaqz/ModelParameters.jl), which achieves similar goals in a cleaner, simpler way.
-
 This package lets you define metadata about fields in a struct, like tags
 in Go. It uses a similar syntax to Parameters.jl, with a `|` bar instead of `=`.
 You can use it as a minimalist replacement for Parameters.jl with the aid of
-[FieldDefaults.jl](https://github.com/rafaqz/FieldDefaults.jl).
+[FieldDefaults.jl](https://github.com/rafaqz/FieldDefaults.jl). 
 
-FieldMetadata on nested structs can be flattened into a vector or tuple very efficiently with [Flatten.jl](https://github.com/rafaqz/Flatten.jl), where they are also used to 
-exclude fields from flattening.
+Note that development effort has shifted to [ModelParameters.jl](https://github.com/rafaqz/ModelParameters.jl),
+which achieves similar goals  in an arguably cleaner way.
 
+FieldMetadata on nested structs can be flattened into a vector or tuple very efficiently with [Flatten.jl](https://github.com/rafaqz/Flatten.jl), where they are also used to exclude fields from flattening.
 
 This example that adds string description metadata to fields in a struct:
 
